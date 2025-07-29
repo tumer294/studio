@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { TextIcon, ImageIcon, Link2Icon, Film, Loader2 } from "lucide-react";
 import { storage } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -66,20 +67,14 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
         let finalMediaUrl = mediaUrl;
         let postType: Post['type'] = activeTab;
 
-        // The core logic fix: Upload the file to Storage and get a URL.
         if (file && activeTab === 'image') {
             postType = 'image';
-            // 1. Create a reference in Firebase Storage
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
-            
-            // 2. Upload the file
             const snapshot = await uploadBytes(storageRef, file);
-            
-            // 3. Get the public download URL
             finalMediaUrl = await getDownloadURL(snapshot.ref);
-        } else if (activeTab === 'video') {
+        } else if (mediaUrl.trim() && activeTab === 'video') {
             postType = 'video';
-        } else if (activeTab === 'link') {
+        } else if (mediaUrl.trim() && activeTab === 'link') {
             postType = 'link';
         } else {
             postType = 'text';
