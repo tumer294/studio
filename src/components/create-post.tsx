@@ -21,7 +21,7 @@ interface CreatePostProps {
 export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const [activeTab, setActiveTab] = useState<"text" | "image" | "video" | "link">("text");
   const [postContent, setPostContent] = useState("");
-  const [mediaUrl, setMediaUrl] = useState(""); // For link/video type by URL
+  const [mediaUrl, setMediaUrl] = useState(""); 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
@@ -31,17 +31,15 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const selectedFile = event.target.files[0];
-      const fileType = selectedFile.type;
-
-      if (activeTab === 'image') {
-        if (!fileType.startsWith('image/')) {
-            toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image file.' });
-            return;
-        }
-        if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
-            toast({ variant: 'destructive', title: 'File Too Large', description: 'Image must be smaller than 5MB.' });
-            return;
-        }
+      
+      // Only handle image files for direct upload
+      if (!selectedFile.type.startsWith('image/')) {
+          toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image file.' });
+          return;
+      }
+      if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
+          toast({ variant: 'destructive', title: 'File Too Large', description: 'Image must be smaller than 5MB.' });
+          return;
       }
       
       setFile(selectedFile);
@@ -66,12 +64,10 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     
     try {
         let finalMediaUrl = mediaUrl;
-        // Default to the active tab, but override if a file is present.
         let postType: Post['type'] = activeTab;
 
-        if (file) {
-            // If a file is selected, the post type is determined by the file, not the tab.
-            postType = file.type.startsWith('image/') ? 'image' : 'video';
+        if (file && activeTab === 'image') {
+            postType = 'image';
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);

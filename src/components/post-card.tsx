@@ -180,8 +180,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     if (!post.mediaUrl) {
       return null;
     }
-    
-    // This handles image posts uploaded directly
+
     if (post.type === 'image') {
         return (
             <div className="mt-3 rounded-lg overflow-hidden border">
@@ -197,58 +196,59 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         );
     }
     
-    const isYoutube = (url: string) => url.includes('youtube.com') || url.includes('youtu.be');
-    const isImageLink = (url: string) => /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
-    const isVideoLink = (url: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
-
-    // This handles video or link posts (which are URL-based)
+    // Logic for 'video' and 'link' types which use URLs
     if (post.type === 'video' || post.type === 'link') {
-         if (isYoutube(post.mediaUrl)) {
-            const videoIdMatch = post.mediaUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
+        const url = post.mediaUrl;
+        const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+        const isImageLink = /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
+        const isVideoLink = /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+
+        if (isYoutube) {
+            const videoIdMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
             const videoId = videoIdMatch ? videoIdMatch[1] : null;
             if (!videoId) return null;
             return (
                 <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                <iframe
-                    className="w-full h-full"
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                ></iframe>
+                    <iframe
+                        className="w-full h-full"
+                        src={`https://www.youtube.com/embed/${videoId}`}
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    ></iframe>
                 </div>
             );
-         }
-         
-         if (isVideoLink(post.mediaUrl)) {
-             return (
-                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                  <video src={post.mediaUrl} controls className="w-full h-full"></video>
-                </div>
-              );
-         }
+        }
 
-        if (isImageLink(post.mediaUrl)) {
-             return (
+        if (isImageLink) {
+            return (
                 <div className="mt-3 rounded-lg overflow-hidden border">
-                  <Image
-                    src={post.mediaUrl}
-                    alt="Post image from link"
-                    width={600}
-                    height={400}
-                    className="w-full h-auto object-cover"
-                  />
+                    <Image
+                        src={url}
+                        alt="Post image from link"
+                        width={600}
+                        height={400}
+                        className="w-full h-auto object-cover"
+                    />
                 </div>
-              );
+            );
+        }
+
+        if (isVideoLink) {
+            return (
+                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                    <video src={url} controls className="w-full h-full"></video>
+                </div>
+            );
         }
         
         // Fallback for any other link type
         return (
-            <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
+            <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
               <div className="p-3">
-                <p className="font-bold truncate">{post.content || post.mediaUrl}</p>
-                <p className="text-sm text-muted-foreground truncate">{post.mediaUrl}</p>
+                <p className="font-bold truncate">{post.content || url}</p>
+                <p className="text-sm text-muted-foreground truncate">{url}</p>
               </div>
             </a>
         );
