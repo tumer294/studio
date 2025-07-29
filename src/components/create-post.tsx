@@ -31,7 +31,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const selectedFile = event.target.files[0];
-       if (selectedFile.size > 5 * 1024 * 1024 && (activeTab === 'image' || activeTab === 'video')) {
+       if (selectedFile.size > 5 * 1024 * 1024 && (activeTab === 'image')) {
             toast({
                 variant: 'destructive',
                 title: 'File Too Large',
@@ -61,28 +61,15 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     setIsUploading(true);
     
     try {
-        let finalMediaUrl = "";
+        let finalMediaUrl = mediaUrl;
         let postType: Post['type'] = activeTab;
 
         if (file) {
-            // Set post type based on file, overriding tab selection
-            if(file.type.startsWith('image/')) postType = 'image';
-            else if(file.type.startsWith('video/')) postType = 'video';
-            else {
-                toast({ variant: 'destructive', title: 'Unsupported File', description: 'Please upload an image or video file.'});
-                setIsUploading(false);
-                return;
-            }
-
+            postType = 'image';
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
-
-        } else if (mediaUrl.trim() && (activeTab === 'video' || activeTab === 'link')) {
-             postType = activeTab;
-             finalMediaUrl = mediaUrl;
         }
-
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
             content: postContent,

@@ -194,23 +194,25 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       );
     }
     
-    if (post.type === 'video') {
-        const isYoutube = post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be');
-        if (isYoutube) {
-            const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
-            return (
-                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                    <iframe
-                        className="w-full h-full"
-                        src={`https://www.youtube.com/embed/${videoId}`}
-                        title="YouTube video player"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen>
-                    </iframe>
-                </div>
-            )
-        }
+    // For both 'video' and 'link' types that point to a YouTube URL
+    if ((post.type === 'video' || post.type === 'link') && (post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be'))) {
+        const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
+        return (
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen>
+                </iframe>
+            </div>
+        );
+    }
+
+    // For 'video' type or 'link' type that points to a direct video file
+    if (post.type === 'video' || (post.type === 'link' && /\.(mp4|webm|mov)$/i.test(post.mediaUrl))) {
          return (
           <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
             <video
@@ -222,27 +224,17 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         );
     }
 
+    // For 'link' type that points to a direct image file
+    if (post.type === 'link' && /\.(jpeg|jpg|gif|png|webp)$/i.test(post.mediaUrl)) {
+        return (
+            <div className="mt-3 rounded-lg overflow-hidden border">
+                <Image src={post.mediaUrl} alt="Post image" width={600} height={400} className="w-full object-cover" />
+            </div>
+        );
+    }
+
+    // For any other 'link'
     if (post.type === 'link') {
-        // This is for general links that might be images, videos or just webpages
-        const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(post.mediaUrl);
-        const isVideo = /\.(mp4|webm|mov)$/i.test(post.mediaUrl);
-
-        if (isImage) {
-            return (
-                <div className="mt-3 rounded-lg overflow-hidden border">
-                    <Image src={post.mediaUrl} alt="Post image" width={600} height={400} className="w-full object-cover" />
-                </div>
-            );
-        }
-
-        if (isVideo) {
-            return (
-                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                    <video src={post.mediaUrl} controls className="w-full h-full"></video>
-                </div>
-            );
-        }
-
         return (
              <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
                  <div className="p-3">
@@ -255,7 +247,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
 
     return null;
   };
-
 
   return (
     <Card className="overflow-hidden">
@@ -317,3 +308,5 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     </Card>
   );
 }
+
+    
