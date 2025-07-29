@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Bell, User, LogOut, PenSquare, Settings, Moon, Sun, Languages } from "lucide-react";
+import { Home, Compass, Bell, User, LogOut, PenSquare, Settings, Moon, Sun, Languages, Palette } from "lucide-react";
 import { UmmahConnectLogo } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,8 +27,20 @@ const navItems = [
   { href: "/profile/me", label: "Profile", icon: User },
 ];
 
+const themes = [
+    { name: "Islamic Green", class: "theme-default" },
+    { name: "Islamic Yellow", class: "theme-islamic-yellow" },
+    { name: "Light", class: "light" },
+    { name: "Dark", class: "dark" },
+]
+
 export default function AppSidebar() {
   const pathname = usePathname();
+
+  const handleThemeChange = (themeClass: string) => {
+    document.documentElement.className = '';
+    document.documentElement.classList.add(themeClass);
+  }
 
   return (
     <aside className="w-64 flex-shrink-0 border-r border-border/60 flex flex-col p-4 bg-card">
@@ -77,9 +89,22 @@ export default function AppSidebar() {
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                         <DropdownMenuSubContent>
-                            <DropdownMenuItem>Light</DropdownMenuItem>
-                            <DropdownMenuItem>Dark</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => document.documentElement.classList.remove('dark')}>Light</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => document.documentElement.classList.add('dark')}>Dark</DropdownMenuItem>
                             <DropdownMenuItem>System</DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                </DropdownMenuSub>
+                 <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                        <Palette className="mr-2 h-4 w-4" />
+                        <span>Color Theme</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                        <DropdownMenuSubContent>
+                            {themes.map(theme => (
+                                <DropdownMenuItem key={theme.class} onClick={() => handleThemeChange(theme.class)}>{theme.name}</DropdownMenuItem>
+                            ))}
                         </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                 </DropdownMenuSub>
