@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PostCard from "@/components/post-card";
-import { UserPlus, Mail } from "lucide-react";
+import { UserPlus, Mail, Camera } from "lucide-react";
 
 export default function ProfilePage({ params }: { params: { username: string } }) {
   const username = params.username;
@@ -21,13 +21,20 @@ export default function ProfilePage({ params }: { params: { username: string } }
   return (
     <div className="p-4 md:p-0">
         <Card className="overflow-hidden">
-            <div className="h-32 md:h-48 bg-gradient-to-r from-primary/20 to-accent/20" />
+            <div className="h-32 md:h-48 bg-gradient-to-r from-primary/20 to-accent/20 relative">
+                <Button size="sm" variant="outline" className="absolute bottom-2 right-2 bg-background/50 backdrop-blur-sm">
+                    <Camera className="mr-2 h-4 w-4" /> Cover Photo
+                </Button>
+            </div>
             <div className="p-4 relative">
-                <div className="absolute -top-16 left-6">
+                <div className="absolute -top-16 left-6 group">
                     <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-card shadow-md">
                         <AvatarImage src={user.avatarUrl} data-ai-hint="person portrait" />
                         <AvatarFallback className="text-4xl">{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
+                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <Camera className="text-white w-8 h-8"/>
+                    </div>
                 </div>
                 
                 <div className="flex justify-end items-center mb-4">
@@ -41,7 +48,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
                    </div>
                 </div>
 
-                <div className="pt-8">
+                <div className="pt-8 md:pt-12">
                     <h2 className="text-2xl font-bold font-headline">{user.name}</h2>
                     <p className="text-muted-foreground">@{user.username}</p>
                     <p className="mt-2 text-foreground/90">{user.bio}</p>
@@ -71,10 +78,26 @@ export default function ProfilePage({ params }: { params: { username: string } }
                     <PostCard key={post.id} post={post} user={user} />
                 ))}
                  {userPosts.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground">
-                        <p>No posts yet.</p>
-                    </div>
+                    <Card>
+                        <CardContent className="text-center py-12 text-muted-foreground">
+                            <p>No posts yet.</p>
+                        </CardContent>
+                    </Card>
                 )}
+            </TabsContent>
+            <TabsContent value="replies" className="mt-4">
+                 <Card>
+                    <CardContent className="text-center py-12 text-muted-foreground">
+                        <p>No replies yet.</p>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="likes" className="mt-4">
+                 <Card>
+                    <CardContent className="text-center py-12 text-muted-foreground">
+                        <p>No likes yet.</p>
+                    </CardContent>
+                </Card>
             </TabsContent>
         </Tabs>
     </div>
