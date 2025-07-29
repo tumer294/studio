@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Edit, LinkIcon } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Edit, LinkIcon, PlayCircle } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import {
@@ -183,7 +183,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     }
     const url = post.mediaUrl;
 
-    // Highest priority: Check for direct media file extensions.
     const isImageFile = /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
     if (isImageFile) {
       return (
@@ -209,7 +208,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       );
     }
 
-    // Second priority: Check for specific embeddable services.
     const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
     if (isYoutube) {
       const videoIdMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
@@ -229,26 +227,19 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       );
     }
     
-    const isFacebookVideo = url.includes('facebook.com/watch') || url.includes('facebook.com/videos');
-    if(isFacebookVideo) {
-        const encodedUrl = encodeURIComponent(url);
+    const isFacebook = url.includes('facebook.com');
+    if (isFacebook) {
         return (
-             <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                <iframe
-                    src={`https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`}
-                    width="560"
-                    height="315"
-                    style={{border:'none', overflow:'hidden'}}
-                    frameBorder="0"
-                    allowFullScreen={true}
-                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                ></iframe>
-            </div>
-        )
+            <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 group relative block aspect-video w-full rounded-lg overflow-hidden border bg-black">
+                <Image src="https://placehold.co/600x400/000000/FFFFFF.png?text=Facebook+Video" alt="Facebook video placeholder" layout="fill" objectFit="cover" className="opacity-50" />
+                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+                    <PlayCircle className="w-16 h-16 text-white/80 group-hover:scale-110 transition-transform" />
+                    <p className="mt-2 font-semibold text-white">Watch on Facebook</p>
+                 </div>
+            </a>
+        );
     }
-
-
-    // Last resort: Show a link card for everything else.
+    
     let hostname = 'link';
     try {
         hostname = new URL(url).hostname.replace('www.', '');
