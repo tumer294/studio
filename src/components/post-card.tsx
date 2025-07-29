@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Edit } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Edit, LinkIcon } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import {
@@ -106,6 +106,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   const [isCommentSectionOpen, setIsCommentSectionOpen] = useState(false);
 
   useEffect(() => {
+      if (!initialPost.id) return;
       const postRef = doc(db, 'posts', initialPost.id);
       const unsubscribe = onSnapshot(postRef, (doc) => {
           if (doc.exists()) {
@@ -181,8 +182,22 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       return null;
     }
     const url = post.mediaUrl;
+
+    if (post.type === 'image') {
+        return (
+            <div className="mt-3 rounded-lg overflow-hidden border">
+                <Image
+                    src={url}
+                    alt="Post content"
+                    width={600}
+                    height={400}
+                    className="w-full h-auto object-cover"
+                    data-ai-hint={post['data-ai-hint'] || 'post image'}
+                />
+            </div>
+        );
+    }
     
-    // Check for YouTube URLs first
     const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
     if (isYoutube) {
         const videoIdMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
@@ -202,9 +217,8 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         );
     }
 
-    // Check for direct image file extensions
     const isImageLink = /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
-    if (isImageLink || post.type === 'image') {
+    if (isImageLink) {
         return (
             <div className="mt-3 rounded-lg overflow-hidden border">
                 <Image
@@ -213,15 +227,14 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
                     width={600}
                     height={400}
                     className="w-full h-auto object-cover"
-                    data-ai-hint={post['data-ai-hint']}
+                    data-ai-hint={post['data-ai-hint'] || 'post image'}
                 />
             </div>
         );
     }
 
-    // Check for direct video file extensions
     const isVideoLink = /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
-    if (isVideoLink || post.type === 'video') {
+    if (isVideoLink) {
         return (
             <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
                 <video src={url} controls className="w-full h-full"></video>
@@ -229,26 +242,29 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         );
     }
     
-    // Fallback for any other link type (e.g. general web page)
-    if (post.type === 'link') {
+    // Fallback for any other link type (e.g. general web page or blocked iframe)
+    const blockedDomains = ['facebook.com', 'instagram.com', 'twitter.com', 'x.com'];
+    const isBlocked = blockedDomains.some(domain => url.includes(domain));
+    
+    if (post.type === 'link' || post.type === 'video' || isBlocked) {
+        let hostname = 'link';
         try {
-            // Try to render in an iframe
-            return (
-                <div className="mt-3 aspect-video rounded-lg overflow-hidden border">
-                     <iframe src={url} className="w-full h-full" title={post.content || 'Embedded Content'}></iframe>
+            hostname = new URL(url).hostname;
+        } catch (e) { /* ignore invalid urls */ }
+        
+        return (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted/50 transition-colors">
+              <div className="p-4 bg-muted/20">
+                <div className="flex items-center gap-3">
+                    <LinkIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 overflow-hidden">
+                        <p className="font-semibold truncate">{post.content || 'View Content'}</p>
+                        <p className="text-sm text-muted-foreground truncate">Click to view on {hostname}</p>
+                    </div>
                 </div>
-            )
-        } catch(e) {
-             // If iframe fails, show a simple link card
-            return (
-                <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
-                  <div className="p-3">
-                    <p className="font-bold truncate">{post.content || url}</p>
-                    <p className="text-sm text-muted-foreground truncate">{url}</p>
-                  </div>
-                </a>
-            );
-        }
+              </div>
+            </a>
+        );
     }
 
     return null;
@@ -292,7 +308,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         )}
       </CardHeader>
       <CardContent className="px-4 pb-2">
-        <p className="whitespace-pre-wrap">{post.content}</p>
+        {post.content && <p className="whitespace-pre-wrap">{post.content}</p>}
         {renderMedia()}
       </CardContent>
       <CardFooter className="flex flex-col items-start p-4">
