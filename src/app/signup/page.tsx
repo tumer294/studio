@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore"; 
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore"; 
 import { auth, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,21 +34,22 @@ export default function SignupPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      const name = `${firstName} ${lastName}`;
+      const name = `${firstName} ${lastName}`.trim();
       await updateProfile(user, { displayName: name });
 
       // Create a user document in Firestore
+      const username = email.split('@')[0];
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         name,
-        username: email.split('@')[0], // a simple default
+        username: username,
         email: user.email,
-        bio: '',
+        bio: 'Welcome to UmmahConnect!',
         avatarUrl: '',
         coverPhotoUrl: '',
         followers: [],
         following: [],
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
         role: email === 'admin@example.com' ? 'admin' : 'user', // Assign role
       });
 
@@ -66,7 +68,7 @@ export default function SignupPage() {
   };
   
   const handleGoogleSignup = async () => {
-    setIsLoading(true);
+    setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -76,18 +78,19 @@ export default function SignupPage() {
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
+         const username = user.email?.split('@')[0] || `user${Date.now()}`;
          await setDoc(doc(db, "users", user.uid), {
           uid: user.uid,
           name: user.displayName,
-          username: user.email?.split('@')[0],
+          username: username,
           email: user.email,
-          bio: '',
+          bio: 'Welcome to UmmahConnect!',
           avatarUrl: user.photoURL || '',
           coverPhotoUrl: '',
           followers: [],
           following: [],
-          createdAt: new Date(),
-          role: 'user', // Default role for Google signup
+          createdAt: serverTimestamp(),
+          role: 'user',
         });
       }
 
@@ -97,10 +100,10 @@ export default function SignupPage() {
       toast({
         variant: "destructive",
         title: "Google Signup Failed",
-        description: error.message,
+        description: "Could not sign up with Google. Please ensure it's enabled in your Firebase project and try again.",
       });
     } finally {
-      setIsLoading(false);
+      setIsGoogleLoading(false);
     }
   };
 
@@ -119,27 +122,35 @@ export default function SignupPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="first-name">First name</Label>
-                <Input id="first-name" placeholder="Fatima" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                <Input id="first-name" placeholder="Fatima" required value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isLoading || isGoogleLoading} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="last-name">Last name</Label>
-                <Input id="last-name" placeholder="Al-Fihri" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                <Input id="last-name" placeholder="Al-Fihri" required value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isLoading || isGoogleLoading} />
               </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading || isGoogleLoading}/>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading || isGoogleLoading}/>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
               {isLoading ? 'Creating Account...' : 'Create an account'}
             </Button>
           </form>
-           <Button variant="outline" className="w-full mt-4" onClick={handleGoogleSignup} disabled={isLoading}>
-              Sign up with Google
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+           <Button variant="outline" className="w-full" onClick={handleGoogleSignup} disabled={isLoading || isGoogleLoading}>
+              {isGoogleLoading ? 'Signing up...' : 'Sign up with Google'}
             </Button>
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
