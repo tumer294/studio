@@ -6,7 +6,7 @@ import Image from "next/image";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { User, Post } from '@/lib/types';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -97,10 +97,17 @@ export default function ProfilePage() {
 
           // Fetch posts for this user
           const postsRef = collection(db, "posts");
-          const postsQuery = query(postsRef, where("userId", "==", userDoc.id), orderBy("createdAt", "desc"));
+          // *** FIX: Query without ordering first to avoid needing a composite index ***
+          const postsQuery = query(postsRef, where("userId", "==", userDoc.id));
           
           const unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
             const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+            // *** FIX: Sort the posts on the client-side after fetching ***
+            postsData.sort((a, b) => {
+                const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+                const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+                return dateB - dateA;
+            });
             setUserPosts(postsData);
           });
           
