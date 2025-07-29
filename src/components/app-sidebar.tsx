@@ -25,6 +25,7 @@ import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/use-translation";
 import { languages } from "@/app-strings";
+import { useTheme } from "@/hooks/use-theme-provider";
 
 
 const themes = [
@@ -40,6 +41,7 @@ export default function AppSidebar() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { setLanguage, t } = useTranslation();
+  const { setTheme } = useTheme();
 
   const navItems = [
     { href: "/", label: t.home, icon: Home },
@@ -56,19 +58,6 @@ export default function AppSidebar() {
     } catch (error) {
       console.error("Logout Error:", error);
       toast({ variant: 'destructive', title: "Error", description: "Failed to log out." });
-    }
-  }
-
-  const handleThemeChange = (themeClass: string) => {
-    // Remove any existing theme classes
-    document.documentElement.classList.remove(...themes.map(t => t.class));
-    document.documentElement.classList.remove('light', 'dark');
-
-    // Add the new theme class
-    if (themeClass === 'light' || themeClass === 'dark') {
-      document.documentElement.classList.add(themeClass);
-    } else {
-      document.documentElement.classList.add(themeClass);
     }
   }
 
@@ -123,7 +112,7 @@ export default function AppSidebar() {
                     <DropdownMenuPortal>
                         <DropdownMenuSubContent>
                             {themes.map(theme => (
-                                <DropdownMenuItem key={theme.class} onClick={() => handleThemeChange(theme.class)}>{theme.name}</DropdownMenuItem>
+                                <DropdownMenuItem key={theme.class} onClick={() => setTheme(theme.class)}>{theme.name}</DropdownMenuItem>
                             ))}
                         </DropdownMenuSubContent>
                     </DropdownMenuPortal>

@@ -19,10 +19,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTranslation } from "@/hooks/use-translation";
 import { languages as appLanguages } from "@/app-strings";
-import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/hooks/use-theme-provider";
 
 
 const themes = [
@@ -37,6 +37,7 @@ export default function MobileHeader() {
   const { setLanguage, t } = useTranslation();
   const { toast } = useToast();
   const router = useRouter();
+  const { setTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -48,17 +49,6 @@ export default function MobileHeader() {
       toast({ variant: 'destructive', title: "Error", description: "Failed to log out." });
     }
   }
-
-  const handleThemeChange = (themeClass: string) => {
-    document.documentElement.classList.remove(...themes.map(t => t.class));
-    document.documentElement.classList.remove('light', 'dark');
-
-    if (themeClass === 'light' || themeClass === 'dark') {
-      document.documentElement.classList.add(themeClass);
-    } else {
-      document.documentElement.classList.add(themeClass);
-    }
-  };
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-background/80 backdrop-blur-sm border-b">
@@ -83,7 +73,7 @@ export default function MobileHeader() {
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
                 {themes.map(theme => (
-                  <DropdownMenuItem key={theme.class} onClick={() => handleThemeChange(theme.class)}>{theme.name}</DropdownMenuItem>
+                  <DropdownMenuItem key={theme.class} onClick={() => setTheme(theme.class)}>{theme.name}</DropdownMenuItem>
                 ))}
               </DropdownMenuSubContent>
             </DropdownMenuPortal>

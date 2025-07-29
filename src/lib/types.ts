@@ -16,6 +16,7 @@ export interface User {
   role: 'user' | 'admin';
   createdAt: any; // Firestore Timestamp
   language?: Language;
+  theme?: string;
 }
 
 export type PostType = 'text' | 'image' | 'video' | 'link';

@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 import { AuthProvider } from '@/hooks/use-auth-provider';
 import { TranslationProvider } from '@/hooks/use-translation';
+import { ThemeProvider } from '@/hooks/use-theme-provider';
 
 export const metadata: Metadata = {
   title: 'UmmahConnect',
@@ -24,10 +25,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <TranslationProvider>
-            {children}
-            <Toaster />
-          </TranslationProvider>
+          <ThemeProvider>
+            <TranslationProvider>
+              {children}
+              <Toaster />
+            </TranslationProvider>
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>
