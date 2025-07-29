@@ -42,46 +42,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   
   React.useEffect(() => {
-    // We don't want to run this check on the server or while loading.
-    if (typeof window === 'undefined' || loading) {
-      return;
-    }
-
-    // If loading is complete and there is still no user, redirect to login.
-    if (!user) {
+    // This effect only handles redirecting away if the user is NOT authenticated *after* loading is complete.
+    // It avoids the race condition of redirecting before the auth state is fully resolved.
+    if (!loading && !user) {
       router.replace('/login');
     }
   }, [user, loading, router]);
 
 
-  // While authentication is in progress, display a loading skeleton.
+  // While authentication is in progress, always display a loading skeleton.
   // This is the key to preventing the "flicker" or "redirect loop".
-  if (loading) {
+  if (loading || !user) {
     return <AppLoadingSkeleton />;
   }
 
   // If loading is done and we have a user, render the app.
-  if (user) {
-    return (
-      <div className="flex min-h-screen bg-background">
-        {isMobile ? (
-          <div className="flex flex-col w-full">
-            <MobileHeader />
-            <main className="flex-1 pb-20">{children}</main>
-            <MobileBottomNav />
-          </div>
-        ) : (
-          <>
-            <AppSidebar />
-            <main className="flex-1 max-w-2xl mx-auto py-8 px-4">{children}</main>
-            <div className="hidden lg:block lg:flex-1" />
-          </>
-        )}
-      </div>
-    );
-  }
-
-  // If loading is done and there's no user, the useEffect will handle the redirect.
-  // We can return the skeleton until the redirect happens to avoid rendering children.
-  return <AppLoadingSkeleton />;
+  return (
+    <div className="flex min-h-screen bg-background">
+      {isMobile ? (
+        <div className="flex flex-col w-full">
+          <MobileHeader />
+          <main className="flex-1 pb-20">{children}</main>
+          <MobileBottomNav />
+        </div>
+      ) : (
+        <>
+          <AppSidebar />
+          <main className="flex-1 max-w-2xl mx-auto py-8 px-4">{children}</main>
+          <div className="hidden lg:block lg:flex-1" />
+        </>
+      )}
+    </div>
+  );
 }
