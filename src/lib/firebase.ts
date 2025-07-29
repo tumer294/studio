@@ -11,7 +11,8 @@ const firebaseConfig = {
   "storageBucket": "ummahconnect-po02n.appspot.com",
   "apiKey": "AIzaSyBnqVAhN0dofz1oLEaQh8ZkDkY9eWMX7us",
   "authDomain": "ummahconnect-po02n.firebaseapp.com",
-  "messagingSenderId": "697048800724"
+  "messagingSenderId": "697048800724",
+  "measurementId": ""
 };
 
 // Initialize Firebase
