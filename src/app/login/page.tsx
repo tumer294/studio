@@ -28,7 +28,7 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: "Success", description: "Logged in successfully!" });
-      // router.push is handled by the layout now
+      router.push('/');
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -69,7 +69,7 @@ export default function LoginPage() {
       }
 
       toast({ title: "Success", description: "Logged in successfully with Google!" });
-      // router.push is handled by the layout now
+      router.push('/');
     } catch (error: any) {
       console.error("Google Login Error:", error);
       toast({
