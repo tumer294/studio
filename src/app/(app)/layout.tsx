@@ -40,34 +40,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const { user, loading } = useAuth();
   const router = useRouter();
-
+  
   React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // We wait until the loading is false.
-    if (!loading) {
-      // If loading is finished and there's still no user, redirect to login.
+    // Only run this check on the client-side after the initial loading phase.
+    if (typeof window !== 'undefined' && !loading) {
       if (!user) {
+        // If loading is complete and there's no user, redirect to login.
         router.replace('/login');
       }
     }
   }, [user, loading, router]);
 
 
-  // While loading, or if there's no user yet (which might be the case before the effect runs),
-  // show a skeleton screen. This prevents any flash of content or premature rendering.
-  if (loading || !user) {
+  // While loading is true, or if the mobile state is not yet determined,
+  // show the skeleton. This prevents any premature rendering or flicker.
+  if (loading || typeof isMobile === 'undefined') {
+    return <AppLoadingSkeleton />;
+  }
+
+  // If we reach here, it means loading is false. If there's still no user,
+  // the useEffect above will handle the redirection. We can return null
+  // for this brief moment to avoid rendering children before redirecting.
+  if (!user) {
     return <AppLoadingSkeleton />;
   }
   
-  // This check is for when the mobile state is not yet determined.
-  if (typeof isMobile === "undefined") {
-    return <AppLoadingSkeleton />;
-  }
-
-
-  // If we reach here, it means loading is false and a user object exists.
-  // We can safely render the main app layout.
+  // If we have a user and loading is false, render the full app layout.
   return (
     <div className="flex min-h-screen bg-background">
       {isMobile ? (
@@ -86,3 +84,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+

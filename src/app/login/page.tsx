@@ -77,7 +77,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Google Login Failed",
-        description: "Could not log in with Google. Please ensure it's enabled in your Firebase project and try again.",
+        description: error.code === 'auth/popup-closed-by-user' ? 'Login cancelled.' : "Could not log in with Google. Please try again.",
       });
     } finally {
       setIsGoogleLoading(false);
