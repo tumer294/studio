@@ -42,12 +42,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   React.useEffect(() => {
-    // This effect handles redirection. It will only run on the client side.
+    if (typeof window === 'undefined') return;
+
     // We wait until the loading is false.
     if (!loading) {
       // If loading is finished and there's still no user, redirect to login.
       if (!user) {
-        router.push('/login');
+        router.replace('/login');
       }
     }
   }, [user, loading, router]);
@@ -58,11 +59,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (loading || !user) {
     return <AppLoadingSkeleton />;
   }
-
+  
   // This check is for when the mobile state is not yet determined.
   if (typeof isMobile === "undefined") {
     return <AppLoadingSkeleton />;
   }
+
 
   // If we reach here, it means loading is false and a user object exists.
   // We can safely render the main app layout.

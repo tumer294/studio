@@ -4,9 +4,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider, getAuth } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore"; 
-import { auth, db } from "@/lib/firebase";
+import { app, db } from "@/lib/firebase"; // import app
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ export default function SignupPage() {
       return;
     }
     setIsLoading(true);
+    const auth = getAuth(app);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -69,6 +70,7 @@ export default function SignupPage() {
   
   const handleGoogleSignup = async () => {
     setIsGoogleLoading(true);
+    const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);

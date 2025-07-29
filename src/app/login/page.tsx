@@ -4,9 +4,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAuth } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { app, db } from "@/lib/firebase"; // Import app and db
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    const auth = getAuth(app);
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: "Success", description: "Logged in successfully!" });
@@ -42,6 +43,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
+    const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
