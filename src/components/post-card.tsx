@@ -182,9 +182,10 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       return null;
     }
     const url = post.mediaUrl;
-
-    const isImageLink = post.type === 'image' || /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
-    if (isImageLink) {
+    
+    // Priority 1: Check for direct image or video file extensions first.
+    const isImageFile = /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
+    if (isImageFile) {
         return (
             <div className="mt-3 rounded-lg overflow-hidden border">
                 <Image
@@ -199,6 +200,16 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         );
     }
     
+    const isVideoFile = /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+    if (isVideoFile) {
+        return (
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                <video src={url} controls className="w-full h-full"></video>
+            </div>
+        );
+    }
+
+    // Priority 2: Check for specific embeddable services like YouTube.
     const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
     if (isYoutube) {
         const videoIdMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
@@ -218,37 +229,47 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         );
     }
 
-    const isVideoLink = post.type === 'video' || /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
-    if (isVideoLink) {
-        return (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                <video src={url} controls className="w-full h-full"></video>
-            </div>
-        );
-    }
-    
-    // Fallback for any other link type (e.g. general web page or blocked iframe)
+    // Priority 3: Fallback for other links, with special handling for sites that block iframes.
     const blockedDomains = ['facebook.com', 'instagram.com', 'twitter.com', 'x.com'];
     const isBlocked = blockedDomains.some(domain => url.includes(domain));
     
-    let hostname = 'link';
-    try {
-        hostname = new URL(url).hostname;
-    } catch (e) { /* ignore invalid urls */ }
-    
-    return (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted/50 transition-colors">
-          <div className="p-4 bg-muted/20">
-            <div className="flex items-center gap-3">
-                <LinkIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                <div className="flex-1 overflow-hidden">
-                    <p className="font-semibold truncate">{post.content || (isBlocked ? `View on ${hostname}`: 'View Content')}</p>
-                    <p className="text-sm text-muted-foreground truncate">Click to view on {hostname}</p>
+    if(isBlocked) {
+        let hostname = 'link';
+        try {
+            hostname = new URL(url).hostname;
+        } catch (e) { /* ignore invalid urls */ }
+        
+        return (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted/50 transition-colors">
+              <div className="p-4 bg-muted/20">
+                <div className="flex items-center gap-3">
+                    <LinkIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 overflow-hidden">
+                        <p className="font-semibold truncate">{`View on ${hostname}`}</p>
+                        <p className="text-sm text-muted-foreground truncate">Click to view on {hostname}</p>
+                    </div>
                 </div>
-            </div>
-          </div>
-        </a>
-    );
+              </div>
+            </a>
+        );
+    }
+
+    // Last resort: Try to iframe any other link. This may or may not work depending on the site.
+    if (post.type === 'link') {
+      return (
+        <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+          <iframe
+            className="w-full h-full bg-white"
+            src={url}
+            title="Shared link"
+            frameBorder="0"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    }
+
+    return null;
   };
 
 
@@ -312,5 +333,4 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     </Card>
   );
 }
-
-    
+ 
