@@ -6,7 +6,7 @@ import Image from "next/image";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy } from 'firebase/firestore';
 import type { User, Post } from '@/lib/types';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -67,38 +67,17 @@ export default function ProfilePage() {
     let unsubProfile: (() => void) | undefined;
     let unsubPosts: (() => void) | undefined;
 
-    const fetchUserProfile = async () => {
-      // Don't do anything until authentication is finished
-      if (authLoading) {
-        return;
-      }
-        
+    const fetchUserProfile = async (usernameToFetch: string) => {
+      if (!active) return;
       setLoading(true);
-      
-      let userToFetchUsername = usernameFromUrl;
-
-      // If the URL is /profile/me, we need to get the current user's username first
-      if (usernameFromUrl === 'me') {
-        if (!currentUser) {
-           // If not logged in, redirect to login page
-           router.push('/login');
-           return;
-        }
-        userToFetchUsername = currentUser.username;
-      }
-
-      if (!userToFetchUsername) {
-          setLoading(false);
-          return;
-      }
       
       try {
         const usersRef = collection(db, "users");
-        const q = query(usersRef, where("username", "==", userToFetchUsername));
+        const q = query(usersRef, where("username", "==", usernameToFetch));
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-          if(active) setProfileUser(null);
+          if (active) setProfileUser(null);
         } else {
           const userDoc = querySnapshot.docs[0];
           
@@ -106,18 +85,14 @@ export default function ProfilePage() {
             if(active) setProfileUser({ id: doc.id, ...doc.data() } as User);
           });
 
-          // Fetch posts and sort them on the client side to avoid composite index requirement
           const postsRef = collection(db, "posts");
-          const postsQuery = query(postsRef, where("userId", "==", userDoc.id));
+          const postsQuery = query(postsRef, where("userId", "==", userDoc.id), orderBy("createdAt", "desc"));
           
           unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
-            const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-            postsData.sort((a, b) => {
-                const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-                const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-                return dateB - dateA;
-            });
-            if(active) setUserPosts(postsData);
+            if(active) {
+                const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                setUserPosts(postsData);
+            }
           });
         }
       } catch (error) {
@@ -129,14 +104,36 @@ export default function ProfilePage() {
       }
     };
 
-    fetchUserProfile();
+    if (authLoading) {
+      // Still waiting for auth state to resolve, do nothing yet.
+      // The skeleton will be shown because `loading` is true by default.
+      return;
+    }
+    
+    let userToFetch: string | null = usernameFromUrl;
 
-    return () => {
-        active = false;
-        if (unsubProfile) unsubProfile();
-        if (unsubPosts) unsubPosts();
+    if (usernameFromUrl === 'me') {
+      if (currentUser) {
+        userToFetch = currentUser.username;
+      } else {
+        // Not logged in, but trying to access /profile/me
+        router.replace('/login');
+        return;
+      }
+    }
+    
+    if (userToFetch) {
+      fetchUserProfile(userToFetch);
+    } else {
+      // If we still don't have a username to fetch, it's a genuine not found case.
+      setLoading(false);
     }
 
+    return () => {
+      active = false;
+      if (unsubProfile) unsubProfile();
+      if (unsubPosts) unsubPosts();
+    };
   }, [usernameFromUrl, currentUser, authLoading, router, toast]);
 
   const handleFollow = async () => {
