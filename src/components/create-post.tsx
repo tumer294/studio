@@ -21,7 +21,7 @@ interface CreatePostProps {
 export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const [activeTab, setActiveTab] = useState<"text" | "image" | "video" | "link">("text");
   const [postContent, setPostContent] = useState("");
-  const [mediaUrl, setMediaUrl] = useState(""); // For link/video type
+  const [mediaUrl, setMediaUrl] = useState(""); // For link/video type by URL
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
@@ -31,7 +31,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const selectedFile = event.target.files[0];
-       if (selectedFile.size > 5 * 1024 * 1024 && (activeTab === 'image')) {
+       if (selectedFile.size > 5 * 1024 * 1024 && (activeTab === 'image' || activeTab === 'video')) {
             toast({
                 variant: 'destructive',
                 title: 'File Too Large',
@@ -61,25 +61,33 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     setIsUploading(true);
     
     try {
-        let uploadedMediaUrl = "";
+        let finalMediaUrl = "";
         let postType: Post['type'] = activeTab;
 
-        // If a file is selected, it's always an 'image' type for direct upload
         if (file) {
-            postType = 'image';
+            // Set post type based on file, overriding tab selection
+            if(file.type.startsWith('image/')) postType = 'image';
+            else if(file.type.startsWith('video/')) postType = 'video';
+            else {
+                toast({ variant: 'destructive', title: 'Unsupported File', description: 'Please upload an image or video file.'});
+                setIsUploading(false);
+                return;
+            }
+
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
-            uploadedMediaUrl = await getDownloadURL(snapshot.ref);
+            finalMediaUrl = await getDownloadURL(snapshot.ref);
+
         } else if (mediaUrl.trim() && (activeTab === 'video' || activeTab === 'link')) {
              postType = activeTab;
-             uploadedMediaUrl = mediaUrl;
+             finalMediaUrl = mediaUrl;
         }
 
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
             content: postContent,
             type: postType,
-            mediaUrl: uploadedMediaUrl,
+            mediaUrl: finalMediaUrl,
         };
 
         await onCreatePost(newPost);
@@ -90,6 +98,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     } catch(error) {
         console.error("Error during post creation:", error);
         toast({variant: 'destructive', title: 'Upload Error', description: 'Could not create the post.'})
+    } finally {
         setIsUploading(false);
     }
   };
@@ -131,9 +140,14 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
                 />
               </div>
             )}
-            {(activeTab === 'video' || activeTab === 'link') && (
-              <div className="mt-2">
-                 <Input type="url" placeholder="Enter link to embed (e.g., YouTube, Imgur)" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
+            {(activeTab === 'video') && (
+               <div className="mt-2">
+                 <Input type="url" placeholder="Enter video link to embed (e.g., YouTube)" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
+              </div>
+            )}
+            {(activeTab === 'link') && (
+               <div className="mt-2">
+                 <Input type="url" placeholder="Enter link to share" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
               </div>
             )}
 
