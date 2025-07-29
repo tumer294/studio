@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState } from 'react';
-import type { User } from "@/lib/types";
+import type { User, Post, PostType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,10 +12,11 @@ import { TextIcon, ImageIcon, Link2Icon, Film } from "lucide-react";
 
 interface CreatePostProps {
   user: User;
+  onCreatePost: (post: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'>) => void;
 }
 
-export default function CreatePost({ user }: CreatePostProps) {
-  const [activeTab, setActiveTab] = useState("text");
+export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
+  const [activeTab, setActiveTab] = useState<PostType>("text");
   const [postContent, setPostContent] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -26,15 +28,21 @@ export default function CreatePost({ user }: CreatePostProps) {
   };
 
   const handlePost = () => {
-    console.log({
-      content: postContent,
-      type: activeTab,
-      mediaUrl: file ? URL.createObjectURL(file) : mediaUrl,
-    });
+    if (!postContent.trim() && !file && !mediaUrl.trim()) return;
+
+    const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
+        content: postContent,
+        type: activeTab,
+        mediaUrl: file ? URL.createObjectURL(file) : mediaUrl,
+    };
+
+    onCreatePost(newPost);
+    
     // Reset state after posting
     setPostContent("");
     setMediaUrl("");
     setFile(null);
+    setActiveTab("text");
   };
   
   const TABS = [
@@ -42,7 +50,10 @@ export default function CreatePost({ user }: CreatePostProps) {
       { id: 'image', icon: ImageIcon, label: 'Image' },
       { id: 'video', icon: Film, label: 'Video' },
       { id: 'link', icon: Link2Icon, label: 'Link' },
-  ];
+  ] as const;
+
+  const isPostButtonDisabled = postContent.trim() === "" && !file && mediaUrl.trim() === "";
+
 
   return (
     <Card>
@@ -85,7 +96,7 @@ export default function CreatePost({ user }: CreatePostProps) {
                     ))}
                 </div>
                <div className="flex items-center gap-2">
-                <Button onClick={handlePost} disabled={!postContent.trim()}>Post</Button>
+                <Button onClick={handlePost} disabled={isPostButtonDisabled}>Post</Button>
               </div>
             </div>
           </div>
