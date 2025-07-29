@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useContext } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { User as AppUser } from '@/lib/types';
 import { AuthContext } from '@/hooks/use-auth-provider';
@@ -29,46 +29,51 @@ export function useAuth(): AuthState {
 
 // This is the internal hook that provides the auth state
 export function useAuthProvider(): AuthState {
-  const [authState, setAuthState] = useState<AuthState>({
-      user: null,
-      loading: true,
-      isAdmin: false
-  });
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    // This listener handles Firebase's auth state changes (login/logout)
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // User is signed in.
+        // If user is logged in, listen for their data in Firestore
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        try {
-          const userDoc = await getDoc(userDocRef);
+        
+        const unsubscribeFirestore = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
+            // Combine auth data and firestore data
             const appUser = userDoc.data() as AppUser;
-            setAuthState({
-              user: { ...firebaseUser, ...appUser, id: userDoc.id },
-              loading: false,
-              isAdmin: appUser.role === 'admin'
-            });
+            setUser({ ...firebaseUser, ...appUser, id: userDoc.id });
           } else {
-             // This case might happen if a user exists in Auth but not Firestore
-            // For example, if the signup process was interrupted.
-            // We treat them as not fully logged in.
-            setAuthState({ user: null, loading: false, isAdmin: false });
+            // User exists in Auth but not Firestore. This can happen if signup
+            // is interrupted. Treat as logged out until profile is created.
+            setUser(null);
           }
-        } catch (error) {
+          // Set loading to false only after we have a result from Firestore
+          setLoading(false);
+        }, (error) => {
            console.error("Error fetching user data:", error);
-           setAuthState({ user: null, loading: false, isAdmin: false });
-        }
+           setUser(null);
+           setLoading(false);
+        });
+
+        // Return the firestore listener so it gets cleaned up on logout
+        return unsubscribeFirestore;
+
       } else {
-        // User is signed out.
-        setAuthState({ user: null, loading: false, isAdmin: false });
+        // User is signed out. Clear user and stop loading.
+        setUser(null);
+        setLoading(false);
       }
     });
 
     // Cleanup subscription on unmount
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
-  return authState;
+  return { 
+      user, 
+      loading, 
+      isAdmin: user?.role === 'admin' 
+  };
 }
-

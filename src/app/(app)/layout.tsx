@@ -42,46 +42,46 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   
   React.useEffect(() => {
-    // Only run this check on the client-side after the initial loading phase.
-    if (typeof window !== 'undefined' && !loading) {
-      if (!user) {
-        // If loading is complete and there's no user, redirect to login.
-        router.replace('/login');
-      }
+    // We don't want to run this check on the server or while loading.
+    if (typeof window === 'undefined' || loading) {
+      return;
+    }
+
+    // If loading is complete and there is still no user, redirect to login.
+    if (!user) {
+      router.replace('/login');
     }
   }, [user, loading, router]);
 
 
-  // While loading is true, or if the mobile state is not yet determined,
-  // show the skeleton. This prevents any premature rendering or flicker.
-  if (loading || typeof isMobile === 'undefined') {
+  // While authentication is in progress, display a loading skeleton.
+  // This is the key to preventing the "flicker" or "redirect loop".
+  if (loading) {
     return <AppLoadingSkeleton />;
   }
 
-  // If we reach here, it means loading is false. If there's still no user,
-  // the useEffect above will handle the redirection. We can return null
-  // for this brief moment to avoid rendering children before redirecting.
-  if (!user) {
-    return <AppLoadingSkeleton />;
+  // If loading is done and we have a user, render the app.
+  if (user) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        {isMobile ? (
+          <div className="flex flex-col w-full">
+            <MobileHeader />
+            <main className="flex-1 pb-20">{children}</main>
+            <MobileBottomNav />
+          </div>
+        ) : (
+          <>
+            <AppSidebar />
+            <main className="flex-1 max-w-2xl mx-auto py-8 px-4">{children}</main>
+            <div className="hidden lg:block lg:flex-1" />
+          </>
+        )}
+      </div>
+    );
   }
-  
-  // If we have a user and loading is false, render the full app layout.
-  return (
-    <div className="flex min-h-screen bg-background">
-      {isMobile ? (
-        <div className="flex flex-col w-full">
-          <MobileHeader />
-          <main className="flex-1 pb-20">{children}</main>
-          <MobileBottomNav />
-        </div>
-      ) : (
-        <>
-          <AppSidebar />
-          <main className="flex-1 max-w-2xl mx-auto py-8 px-4">{children}</main>
-          <div className="hidden lg:block lg:flex-1" />
-        </>
-      )}
-    </div>
-  );
+
+  // If loading is done and there's no user, the useEffect will handle the redirect.
+  // We can return the skeleton until the redirect happens to avoid rendering children.
+  return <AppLoadingSkeleton />;
 }
-

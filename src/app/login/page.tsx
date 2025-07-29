@@ -28,8 +28,8 @@ export default function LoginPage() {
     const auth = getAuth(app);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      toast({ title: "Success", description: "Logged in successfully!" });
-      router.push('/');
+      toast({ title: "Success", description: "Logged in successfully! Redirecting..." });
+      // The redirect is now handled by the AppLayout, no need for router.push here
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -70,8 +70,8 @@ export default function LoginPage() {
         });
       }
 
-      toast({ title: "Success", description: "Logged in successfully with Google!" });
-      router.push('/');
+      toast({ title: "Success", description: "Logged in successfully with Google! Redirecting..." });
+      // The redirect is now handled by the AppLayout
     } catch (error: any) {
       console.error("Google Login Error:", error);
       toast({
