@@ -71,6 +71,7 @@ export default function LoginPage() {
       toast({ title: "Success", description: "Logged in successfully with Google!" });
       router.push("/");
     } catch (error: any) {
+      console.error("Google Login Error:", error);
       toast({
         variant: "destructive",
         title: "Google Login Failed",
