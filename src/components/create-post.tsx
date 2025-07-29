@@ -21,7 +21,7 @@ interface CreatePostProps {
 export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const [activeTab, setActiveTab] = useState<"text" | "image" | "video" | "link">("text");
   const [postContent, setPostContent] = useState("");
-  const [mediaUrl, setMediaUrl] = useState(""); // For link type
+  const [mediaUrl, setMediaUrl] = useState(""); // For link/video type
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
@@ -31,7 +31,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const selectedFile = event.target.files[0];
-       if (selectedFile.size > 5 * 1024 * 1024 && (activeTab === 'image' || activeTab === 'video')) {
+       if (selectedFile.size > 5 * 1024 * 1024 && (activeTab === 'image')) {
             toast({
                 variant: 'destructive',
                 title: 'File Too Large',
@@ -51,23 +51,23 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     
     try {
         let uploadedMediaUrl = "";
-        let postType: Post['type'] = activeTab;
+        let postType: Post['type'] = 'text';
 
-        if (file) {
-            if (file.type.startsWith('image/')) {
-                postType = 'image';
-            } else if (file.type.startsWith('video/')) {
-                postType = 'video';
-            }
+        if (file && activeTab === 'image') {
+            postType = 'image';
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             uploadedMediaUrl = await getDownloadURL(snapshot.ref);
+        } else if (mediaUrl.trim() && (activeTab === 'video' || activeTab === 'link')) {
+             postType = activeTab;
+             uploadedMediaUrl = mediaUrl;
         }
+
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
             content: postContent,
             type: postType,
-            mediaUrl: postType === 'link' ? mediaUrl : uploadedMediaUrl,
+            mediaUrl: uploadedMediaUrl,
         };
 
         await onCreatePost(newPost);
@@ -115,18 +115,18 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
               onChange={(e) => setPostContent(e.target.value)}
             />
             
-            {(activeTab === 'image' || activeTab === 'video') && (
+            {(activeTab === 'image') && (
               <div className="mt-2">
                 <Input 
                   type="file" 
-                  accept={activeTab === 'image' ? "image/*" : "video/*"} 
+                  accept="image/*"
                   onChange={handleFileChange}
                   ref={fileInputRef}
                   className="file:text-foreground"
                 />
               </div>
             )}
-            {activeTab === 'link' && (
+            {(activeTab === 'video' || activeTab === 'link') && (
               <div className="mt-2">
                  <Input type="url" placeholder="Enter link to embed (e.g., YouTube)" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
               </div>
