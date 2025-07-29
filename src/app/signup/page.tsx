@@ -55,7 +55,7 @@ export default function SignupPage() {
 
 
       toast({ title: "Success", description: "Account created successfully!" });
-      router.push("/");
+      // router.push is handled by the layout now
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -95,7 +95,7 @@ export default function SignupPage() {
       }
 
       toast({ title: "Success", description: "Signed up successfully with Google!" });
-      router.push("/");
+      // router.push is handled by the layout now
     } catch (error: any) {
       console.error("Google Signup Error:", error);
       toast({
