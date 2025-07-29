@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; 
+import { doc, setDoc, getDoc } from "firebase/firestore"; 
 import { auth, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,10 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 6) {
+      toast({ variant: "destructive", title: "Signup Failed", description: "Password should be at least 6 characters." });
+      return;
+    }
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -63,24 +67,29 @@ export default function SignupPage() {
   
   const handleGoogleSignup = async () => {
     setIsLoading(true);
+    const provider = new GoogleAuthProvider();
     try {
-      const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-       await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        name: user.displayName,
-        username: user.email?.split('@')[0],
-        email: user.email,
-        bio: '',
-        avatarUrl: user.photoURL || '',
-        coverPhotoUrl: '',
-        followers: [],
-        following: [],
-        createdAt: new Date(),
-        role: 'user', // Default role for Google signup
-      });
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+         await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          name: user.displayName,
+          username: user.email?.split('@')[0],
+          email: user.email,
+          bio: '',
+          avatarUrl: user.photoURL || '',
+          coverPhotoUrl: '',
+          followers: [],
+          following: [],
+          createdAt: new Date(),
+          role: 'user', // Default role for Google signup
+        });
+      }
 
       toast({ title: "Success", description: "Signed up successfully with Google!" });
       router.push("/");
