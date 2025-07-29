@@ -179,22 +179,41 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   const renderMedia = () => {
     if (!post.mediaUrl) return null;
 
-    switch (post.type) {
-      case 'image':
-        return (
-          <div className="mt-3 rounded-lg overflow-hidden border">
-            <Image
+    // Handle direct image uploads
+    if (post.type === 'image') {
+      return (
+        <div className="mt-3 rounded-lg overflow-hidden border">
+          <Image
+            src={post.mediaUrl}
+            alt="Post image"
+            width={600}
+            height={400}
+            className="w-full object-cover"
+            data-ai-hint={post['data-ai-hint']}
+          />
+        </div>
+      );
+    }
+    
+    // Handle direct video uploads
+    if (post.type === 'video') {
+         return (
+          <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+            <video
               src={post.mediaUrl}
-              alt="Post image"
-              width={600}
-              height={400}
-              className="w-full object-cover"
-              data-ai-hint={post['data-ai-hint']}
-            />
+              controls
+              className="w-full h-full"
+            ></video>
           </div>
         );
-      case 'video':
+    }
+
+    // Handle link embeds
+    if (post.type === 'link') {
         const isYoutube = post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be');
+        const isImage = /\.(jpeg|jpg|gif|png)$/.test(post.mediaUrl);
+        const isVideo = /\.(mp4|webm)$/.test(post.mediaUrl);
+
         if (isYoutube) {
             const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
             return (
@@ -210,30 +229,35 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
                 </div>
             )
         }
-        return (
-          <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-            <video
-              src={post.mediaUrl}
-              controls
-              className="w-full h-full"
-            ></video>
-          </div>
-        );
-      case 'link':
-         return (
-             <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
-                <div className="aspect-video w-full bg-cover bg-center" style={{backgroundImage: `url(https://placehold.co/600x400)`}}>
-                     {/* We can later add a thumbnail fetcher for the link */}
+        
+        if (isImage) {
+            return (
+                <div className="mt-3 rounded-lg overflow-hidden border">
+                    <Image src={post.mediaUrl} alt="Post image" width={600} height={400} className="w-full object-cover" />
                 </div>
-                <div className="p-3">
-                    <p className="font-bold truncate">{post.mediaUrl}</p>
-                    <p className="text-sm text-muted-foreground truncate">{post.content || 'Click to view link'}</p>
+            );
+        }
+
+        if (isVideo) {
+            return (
+                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                    <video src={post.mediaUrl} controls className="w-full h-full"></video>
+                </div>
+            );
+        }
+
+        // Fallback for general links
+        return (
+             <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
+                 <div className="p-3">
+                    <p className="font-bold truncate">{post.content || post.mediaUrl}</p>
+                    <p className="text-sm text-muted-foreground truncate">Click to view link: {post.mediaUrl}</p>
                 </div>
              </a>
         );
-      default:
-        return null;
     }
+
+    return null;
   };
 
 
