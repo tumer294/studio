@@ -177,9 +177,17 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   const postDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'Just now';
 
   const renderMedia = () => {
-    if (!post.mediaUrl) return null;
+    if (!post.mediaUrl) {
+      return null;
+    }
+    
+    // REGEX to check for image and video file extensions
+    const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(post.mediaUrl);
+    const isVideo = /\.(mp4|webm|mov)$/i.test(post.mediaUrl);
+    const isYoutube = post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be');
 
-    if (post.type === 'image') {
+    // Case 1: Directly uploaded image
+    if (post.type === 'image' && post.mediaUrl) {
       return (
         <div className="mt-3 rounded-lg overflow-hidden border">
           <Image
@@ -187,66 +195,69 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
             alt="Post image"
             width={600}
             height={400}
-            className="w-full object-cover"
+            className="w-full h-auto object-cover"
             data-ai-hint={post['data-ai-hint']}
           />
         </div>
       );
     }
     
-    // For both 'video' and 'link' types that point to a YouTube URL
-    if ((post.type === 'video' || post.type === 'link') && (post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be'))) {
-        const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
-        return (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                <iframe
-                    className="w-full h-full"
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen>
-                </iframe>
-            </div>
-        );
+    // Case 2: YouTube video link
+    if (isYoutube) {
+      const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
+      return (
+        <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+          <iframe
+            className="w-full h-full"
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title="YouTube video player"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
     }
 
-    // For 'video' type or 'link' type that points to a direct video file
-    if (post.type === 'video' || (post.type === 'link' && /\.(mp4|webm|mov)$/i.test(post.mediaUrl))) {
-         return (
-          <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-            <video
-              src={post.mediaUrl}
-              controls
-              className="w-full h-full"
-            ></video>
-          </div>
-        );
+    // Case 3: Direct link to a video file
+    if (isVideo) {
+      return (
+        <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+          <video src={post.mediaUrl} controls className="w-full h-full"></video>
+        </div>
+      );
     }
 
-    // For 'link' type that points to a direct image file
-    if (post.type === 'link' && /\.(jpeg|jpg|gif|png|webp)$/i.test(post.mediaUrl)) {
-        return (
-            <div className="mt-3 rounded-lg overflow-hidden border">
-                <Image src={post.mediaUrl} alt="Post image" width={600} height={400} className="w-full object-cover" />
-            </div>
-        );
+    // Case 4: Direct link to an image file
+    if (isImage) {
+      return (
+        <div className="mt-3 rounded-lg overflow-hidden border">
+          <Image
+            src={post.mediaUrl}
+            alt="Post image from link"
+            width={600}
+            height={400}
+            className="w-full h-auto object-cover"
+          />
+        </div>
+      );
     }
 
-    // For any other 'link'
+    // Case 5: Any other link
     if (post.type === 'link') {
-        return (
-             <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
-                 <div className="p-3">
-                    <p className="font-bold truncate">{post.content || post.mediaUrl}</p>
-                    <p className="text-sm text-muted-foreground truncate">{post.mediaUrl}</p>
-                </div>
-             </a>
-        );
+      return (
+        <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
+          <div className="p-3">
+            <p className="font-bold truncate">{post.content || post.mediaUrl}</p>
+            <p className="text-sm text-muted-foreground truncate">{post.mediaUrl}</p>
+          </div>
+        </a>
+      );
     }
 
     return null;
   };
+
 
   return (
     <Card className="overflow-hidden">
@@ -308,5 +319,3 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     </Card>
   );
 }
-
-    
