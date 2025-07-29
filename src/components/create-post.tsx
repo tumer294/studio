@@ -21,7 +21,7 @@ interface CreatePostProps {
 export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const [activeTab, setActiveTab] = useState<"text" | "image" | "video" | "link">("text");
   const [postContent, setPostContent] = useState("");
-  const [mediaUrl, setMediaUrl] = useState("");
+  const [mediaUrl, setMediaUrl] = useState(""); // For link type
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
@@ -48,26 +48,26 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     if ((!postContent.trim() && !file && !mediaUrl.trim()) || isUploading) return;
     
     setIsUploading(true);
-    let finalMediaUrl = mediaUrl;
-    let postType = activeTab;
-
+    
     try {
+        let uploadedMediaUrl = "";
+        let postType = activeTab;
+
         if (file) {
-            const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            finalMediaUrl = await getDownloadURL(snapshot.ref);
-            // Ensure post type is set correctly for uploaded files
             if (file.type.startsWith('image/')) {
                 postType = 'image';
             } else if (file.type.startsWith('video/')) {
                 postType = 'video';
             }
+            const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            uploadedMediaUrl = await getDownloadURL(snapshot.ref);
         }
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
             content: postContent,
             type: postType,
-            mediaUrl: finalMediaUrl,
+            mediaUrl: postType === 'link' ? mediaUrl : uploadedMediaUrl,
         };
 
         await onCreatePost(newPost);
@@ -80,6 +80,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
             fileInputRef.current.value = "";
         }
         setActiveTab("text");
+        toast({ title: 'Success', description: 'Your post has been published.' });
     } catch(error) {
         console.error("Error during post creation:", error);
         toast({variant: 'destructive', title: 'Upload Error', description: 'Could not create the post.'})
@@ -121,6 +122,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
                   accept={activeTab === 'image' ? "image/*" : "video/*"} 
                   onChange={handleFileChange}
                   ref={fileInputRef}
+                  className="file:text-foreground"
                 />
               </div>
             )}

@@ -1,4 +1,5 @@
 
+import type { Language } from "@/app-strings";
 
 export interface User {
   id: string; // This will be the Firebase UID
@@ -14,6 +15,7 @@ export interface User {
   'data-ai-hint'?: string;
   role: 'user' | 'admin';
   createdAt: any; // Firestore Timestamp
+  language?: Language;
 }
 
 export type PostType = 'text' | 'image' | 'video' | 'link';

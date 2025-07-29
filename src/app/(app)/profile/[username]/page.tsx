@@ -59,89 +59,82 @@ export default function ProfilePage() {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userToFetchUsername, setUserToFetchUsername] = useState<string | null>(null);
-
+  
   const isFollowing = currentUser && profileUser ? (profileUser.followers || []).includes(currentUser.uid) : false;
 
-   useEffect(() => {
-    // This effect determines which username to fetch based on the URL
-    // It waits for auth to be resolved before making a decision for '/profile/me'
-    if (authLoading) return; 
-
-    if (usernameFromUrl === 'me') {
-      if (currentUser) {
-        setUserToFetchUsername(currentUser.username);
-      } else {
-        // Not logged in, but trying to access /profile/me
-        router.replace('/login');
-      }
-    } else {
-      setUserToFetchUsername(usernameFromUrl);
-    }
-  }, [usernameFromUrl, currentUser, authLoading, router]);
-
   useEffect(() => {
-    let active = true;
     let unsubProfile: (() => void) | undefined;
     let unsubPosts: (() => void) | undefined;
 
-    const fetchUserProfile = async (usernameToFetch: string) => {
-      if (!active) return;
-      setLoading(true);
-      
-      try {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("username", "==", usernameToFetch));
-        const querySnapshot = await getDocs(q);
+    const fetchUserProfile = async (username: string) => {
+        setLoading(true);
+        try {
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("username", "==", username));
+            const querySnapshot = await getDocs(q);
 
-        if (querySnapshot.empty) {
-          if (active) setProfileUser(null);
-        } else {
-          const userDoc = querySnapshot.docs[0];
-          
-          unsubProfile = onSnapshot(userDoc.ref, (doc) => {
-            if(active) setProfileUser({ id: doc.id, ...doc.data() } as User);
-          });
-
-          const postsRef = collection(db, "posts");
-          // FIX: The query that requires an index. Removed orderBy.
-          const postsQuery = query(postsRef, where("userId", "==", userDoc.id));
-          
-          unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
-            if(active) {
-                const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                // FIX: Sort posts on the client-side
-                const sortedPosts = postsData.sort((a, b) => {
-                  const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-                  const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-                  return dateB - dateA;
+            if (querySnapshot.empty) {
+                setProfileUser(null);
+            } else {
+                const userDoc = querySnapshot.docs[0];
+                unsubProfile = onSnapshot(userDoc.ref, (doc) => {
+                    setProfileUser({ id: doc.id, ...doc.data() } as User);
                 });
-                setUserPosts(sortedPosts);
+
+                const postsRef = collection(db, "posts");
+                const postsQuery = query(
+                    postsRef,
+                    where("userId", "==", userDoc.id),
+                    orderBy("createdAt", "desc")
+                );
+                
+                unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
+                    const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                    setUserPosts(postsData);
+                }, (error) => {
+                  // Fallback for missing index: Fetch and sort on client
+                  console.warn("Firestore query with orderBy failed, likely missing index. Fetching and sorting on client.", error);
+                  const postsQueryWithoutOrder = query(postsRef, where("userId", "==", userDoc.id));
+                  getDocs(postsQueryWithoutOrder).then(postsSnapshotFallback => {
+                     const postsData = postsSnapshotFallback.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                     const sortedPosts = postsData.sort((a, b) => {
+                        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+                        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+                        return dateB - dateA;
+                      });
+                      setUserPosts(sortedPosts);
+                  });
+                });
             }
-          });
+        } catch (error) {
+            console.error("Error fetching profile:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
+            setProfileUser(null);
+        } finally {
+            setLoading(false);
         }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        if(active) toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
-        if(active) setProfileUser(null);
-      } finally {
-        if(active) setLoading(false);
-      }
     };
 
-    if (userToFetchUsername) {
-      fetchUserProfile(userToFetchUsername);
-    } else if (!authLoading) {
-      // If there's no username to fetch and we are not waiting for auth, it's a genuine not found case or needs redirect.
-      setLoading(false);
+    if (authLoading) {
+      // Wait for auth to finish before doing anything
+      return;
+    }
+
+    if (usernameFromUrl === 'me') {
+        if (currentUser) {
+            fetchUserProfile(currentUser.username);
+        } else {
+            router.replace('/login');
+        }
+    } else {
+        fetchUserProfile(usernameFromUrl);
     }
 
     return () => {
-      active = false;
       if (unsubProfile) unsubProfile();
       if (unsubPosts) unsubPosts();
     };
-  }, [userToFetchUsername, toast, authLoading]);
+  }, [usernameFromUrl, currentUser, authLoading, router, toast]);
 
   const handleFollow = async () => {
     if (!currentUser || !profileUser || currentUser.uid === profileUser.id) return;
@@ -267,5 +260,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
