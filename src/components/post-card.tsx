@@ -156,19 +156,20 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   }
 
   const handleShare = async () => {
+    const postUrl = `${window.location.origin}/post/${post.id}`;
     if (navigator.share) {
         try {
             await navigator.share({
                 title: 'Check out this post on UmmahConnect!',
                 text: post.content,
-                url: window.location.href, // Or a specific post URL if available
+                url: postUrl,
             });
         } catch (error) {
             console.error('Error sharing:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not share post.' });
         }
     } else {
-        navigator.clipboard.writeText(window.location.href); // Fallback for desktop
+        navigator.clipboard.writeText(postUrl); // Fallback for desktop
         toast({ title: 'Link Copied', description: 'Post link copied to clipboard.' });
     }
   };
@@ -227,7 +228,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
           </div>
         )}
          {post.type === 'video' && post.mediaUrl && (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border">
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
                 <video
                     src={post.mediaUrl}
                     controls
@@ -236,16 +237,15 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
             </div>
         )}
         {post.type === 'link' && post.mediaUrl && (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border">
-                <iframe
-                    src={post.mediaUrl.startsWith('http') ? `https://www.youtube.com/embed/${post.mediaUrl.split('v=')[1]}` : post.mediaUrl}
-                    title="Embedded content"
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    sandbox="allow-scripts allow-same-origin allow-popups"
-                ></iframe>
-            </div>
+             <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
+                <div className="aspect-video w-full bg-cover bg-center" style={{backgroundImage: `url(https://placehold.co/600x400)`}}>
+                     {/* We can later add a thumbnail fetcher for the link */}
+                </div>
+                <div className="p-3">
+                    <p className="font-bold truncate">{post.mediaUrl}</p>
+                    <p className="text-sm text-muted-foreground truncate">{post.content || 'Click to view link'}</p>
+                </div>
+             </a>
         )}
       </CardContent>
       <CardFooter className="flex flex-col items-start p-4">

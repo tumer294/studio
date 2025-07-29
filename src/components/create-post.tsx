@@ -128,7 +128,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
             )}
             {activeTab === 'link' && (
               <div className="mt-2">
-                 <Input type="text" placeholder="Enter link to embed" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
+                 <Input type="url" placeholder="Enter link to embed (e.g., YouTube)" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
               </div>
             )}
 
