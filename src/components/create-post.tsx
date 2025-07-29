@@ -66,10 +66,12 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     
     try {
         let finalMediaUrl = mediaUrl;
+        // Default to the active tab, but override if a file is present.
         let postType: Post['type'] = activeTab;
 
         if (file) {
-            postType = 'image'; // Only image tab allows file upload for now
+            // If a file is selected, the post type is determined by the file, not the tab.
+            postType = file.type.startsWith('image/') ? 'image' : 'video';
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
