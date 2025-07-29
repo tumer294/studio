@@ -42,15 +42,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   React.useEffect(() => {
-    // Only redirect if loading is finished and there's no user.
-    if (!loading && !user) {
-      router.push('/login');
+    // This effect handles redirection. It will only run on the client side.
+    // We wait until the loading is false.
+    if (!loading) {
+      // If loading is finished and there's still no user, redirect to login.
+      if (!user) {
+        router.push('/login');
+      }
     }
   }, [user, loading, router]);
 
 
-  // While loading, or if there's no user yet (and we're not finished loading),
-  // show a skeleton screen. This prevents flashes of content or incorrect redirects.
+  // While loading, or if there's no user yet (which might be the case before the effect runs),
+  // show a skeleton screen. This prevents any flash of content or premature rendering.
   if (loading || !user) {
     return <AppLoadingSkeleton />;
   }
@@ -60,6 +64,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return <AppLoadingSkeleton />;
   }
 
+  // If we reach here, it means loading is false and a user object exists.
+  // We can safely render the main app layout.
   return (
     <div className="flex min-h-screen bg-background">
       {isMobile ? (
