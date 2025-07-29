@@ -7,9 +7,18 @@ import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { User as AppUser } from '@/lib/types';
 
-export function useAuth() {
-  const [user, setUser] = useState<(FirebaseUser & AppUser) | null>(null);
-  const [loading, setLoading] = useState(true);
+interface AuthState {
+    user: (FirebaseUser & AppUser) | null;
+    loading: boolean;
+    isAdmin: boolean;
+}
+
+export function useAuth(): AuthState {
+  const [authState, setAuthState] = useState<AuthState>({
+      user: null,
+      loading: true,
+      isAdmin: false
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -17,22 +26,28 @@ export function useAuth() {
         // User is signed in, get their app-specific data from Firestore
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         const userDoc = await getDoc(userDocRef);
+
         if (userDoc.exists()) {
-          setUser({ ...firebaseUser, ...userDoc.data() as AppUser });
+          const appUser = userDoc.data() as AppUser;
+          setAuthState({
+              user: { ...firebaseUser, ...appUser },
+              loading: false,
+              isAdmin: appUser.role === 'admin'
+          });
         } else {
           // This case might happen if user exists in Auth but not Firestore
-          // You might want to create the Firestore doc here or log them out
-          setUser(null);
+          // This could be an error state, or you might create the doc here.
+          // For now, we'll treat it as not fully logged in.
+          setAuthState({ user: null, loading: false, isAdmin: false });
         }
       } else {
         // User is signed out
-        setUser(null);
+        setAuthState({ user: null, loading: false, isAdmin: false });
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  return { user, loading };
+  return authState;
 }

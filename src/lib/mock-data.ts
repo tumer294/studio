@@ -1,3 +1,4 @@
+
 import type { User, Post } from './types';
 
 export const mockUsers: Record<string, User> = {
@@ -8,8 +9,10 @@ export const mockUsers: Record<string, User> = {
     avatarUrl: 'https://placehold.co/100x100/17633D/E0E5DA',
     'data-ai-hint': 'woman portrait',
     bio: 'Founder of the world\'s oldest university. Seeker of knowledge and truth.',
-    followers: 1204,
-    following: 150,
+    followers: ['user-2', 'user-3'],
+    following: ['user-2'],
+    role: 'user',
+    createdAt: new Date(),
   },
   'user-2': {
     id: 'user-2',
@@ -18,8 +21,10 @@ export const mockUsers: Record<string, User> = {
     avatarUrl: 'https://placehold.co/100x100/17633D/E0E5DA',
     'data-ai-hint': 'man portrait',
     bio: 'Explorer, traveler, and storyteller. Sharing glimpses from my journeys.',
-    followers: 8932,
-    following: 5,
+    followers: ['user-1'],
+    following: ['user-1', 'user-3'],
+    role: 'user',
+    createdAt: new Date(),
   },
   'user-3': {
     id: 'user-3',
@@ -28,8 +33,10 @@ export const mockUsers: Record<string, User> = {
     avatarUrl: 'https://placehold.co/100x100/17633D/E0E5DA',
     'data-ai-hint': 'woman scholar',
     bio: 'Narrator of Hadith and scholar. Wife of the Prophet (PBUH).',
-    followers: 1200,
-    following: 1,
+    followers: ['user-1'],
+    following: ['user-2'],
+    role: 'user',
+    createdAt: new Date(),
   },
 };
 
@@ -40,7 +47,7 @@ export const mockPosts: Post[] = [
     type: 'text',
     content: 'The pursuit of knowledge is obligatory for every Muslim. Let us always strive to learn and grow, not just for ourselves, but for our communities. 🌱',
     createdAt: '3h ago',
-    likes: 156,
+    likes: ['user-2', 'user-3'],
     comments: [
       {
         id: 'comment-1-1',
@@ -58,7 +65,7 @@ export const mockPosts: Post[] = [
     mediaUrl: 'https://placehold.co/600x400',
     'data-ai-hint': 'desert sunset',
     createdAt: '1d ago',
-    likes: 842,
+    likes: ['user-1', 'user-3'],
     comments: [],
   },
   {
@@ -68,7 +75,7 @@ export const mockPosts: Post[] = [
     content: 'Sharing this insightful lecture on the history of Islamic art and its spiritual significance. Highly recommended for anyone interested in our rich heritage.',
     mediaUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', // Placeholder link
     createdAt: '2d ago',
-    likes: 302,
+    likes: ['user-3'],
     comments: [],
   },
   {
@@ -77,7 +84,7 @@ export const mockPosts: Post[] = [
     type: 'text',
     content: 'The Prophet (ﷺ) said, "The best among you are those who have the best manners and character."',
     createdAt: '5d ago',
-    likes: 2105,
+    likes: ['user-1', 'user-2'],
     comments: [],
   },
 ];

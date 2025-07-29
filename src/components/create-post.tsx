@@ -2,21 +2,22 @@
 "use client";
 
 import { useState } from 'react';
-import type { User, Post, PostType } from "@/lib/types";
+import type { Post } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { TextIcon, ImageIcon, Link2Icon, Film } from "lucide-react";
+import { useAuth } from '@/hooks/use-auth';
 
 interface CreatePostProps {
-  user: User;
   onCreatePost: (post: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'>) => void;
+  user: any; // Allow flexible user prop for now
 }
 
 export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
-  const [activeTab, setActiveTab] = useState<PostType>("text");
+  const [activeTab, setActiveTab] = useState<"text" | "image" | "video" | "link">("text");
   const [postContent, setPostContent] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -30,10 +31,14 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const handlePost = () => {
     if (!postContent.trim() && !file && !mediaUrl.trim()) return;
 
+    // In a real app, you would upload the file to a service like Firebase Storage
+    // and get back a URL. For this mock, we'll use a local object URL.
+    const fileUrl = file ? URL.createObjectURL(file) : mediaUrl;
+
     const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
         content: postContent,
         type: activeTab,
-        mediaUrl: file ? URL.createObjectURL(file) : mediaUrl,
+        mediaUrl: fileUrl,
     };
 
     onCreatePost(newPost);
@@ -60,8 +65,8 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           <Avatar>
-            <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="woman portrait" />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={user.avatarUrl || user.photoURL} alt={user.name} data-ai-hint="person portrait" />
+            <AvatarFallback>{user.name ? user.name.charAt(0) : user.email.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="w-full">
             <Textarea

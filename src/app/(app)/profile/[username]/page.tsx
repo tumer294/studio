@@ -1,66 +1,161 @@
+
+'use client';
+
+import { useState, useEffect } from 'react';
 import Image from "next/image";
-import { mockUsers, mockPosts } from "@/lib/mock-data";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import type { User, Post } from '@/lib/types';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PostCard from "@/components/post-card";
-import { UserPlus, Mail, Camera } from "lucide-react";
+import { UserPlus, Mail, Camera, UserCheck } from "lucide-react";
+import { useToast } from '@/hooks/use-toast';
 
-export default function ProfilePage({ params }: { params: { username: string } }) {
-  const username = params.username;
-  const user = Object.values(mockUsers).find(u => u.username === username || (username === 'me' && u.id === 'user-3'));
 
-  if (!user) {
-    notFound();
+export default function ProfilePage() {
+  const { user: currentUser, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const params = useParams();
+  const username = Array.isArray(params.username) ? params.username[0] : params.username;
+
+  const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const isFollowing = currentUser && profileUser ? profileUser.followers.includes(currentUser.uid) : false;
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+        if (!username) return;
+        setLoading(true);
+        
+        let userToFetch = username;
+        if (username === 'me' && currentUser) {
+            userToFetch = currentUser.username;
+        }
+
+        try {
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("username", "==", userToFetch));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                setProfileUser(null);
+            } else {
+                const userDoc = querySnapshot.docs[0];
+                const userData = { id: userDoc.id, ...userDoc.data() } as User;
+                setProfileUser(userData);
+
+                // Fetch posts for this user
+                const postsRef = collection(db, "posts");
+                const postsQuery = query(postsRef, where("userId", "==", userData.id), where("type", "in", ["text", "image", "link"]));
+                const postsSnapshot = await getDocs(postsQuery);
+                const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                setUserPosts(postsData);
+            }
+        } catch (error) {
+            console.error("Error fetching profile:", error);
+            setProfileUser(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    // We need auth to finish loading before we can potentially fetch 'me'
+    if (!authLoading) {
+       fetchUserProfile();
+    }
+
+  }, [username, currentUser, authLoading]);
+
+  const handleFollow = async () => {
+    if (!currentUser || !profileUser || currentUser.uid === profileUser.id) return;
+
+    const currentUserRef = doc(db, "users", currentUser.uid);
+    const profileUserRef = doc(db, "users", profileUser.id);
+
+    try {
+        if (isFollowing) {
+            // Unfollow
+            await updateDoc(currentUserRef, { following: arrayRemove(profileUser.id) });
+            await updateDoc(profileUserRef, { followers: arrayRemove(currentUser.uid) });
+            setProfileUser(prev => prev ? ({ ...prev, followers: prev.followers.filter(id => id !== currentUser.uid)}) : null);
+             toast({ title: 'Unfollowed', description: `You are no longer following ${profileUser.name}.` });
+        } else {
+            // Follow
+            await updateDoc(currentUserRef, { following: arrayUnion(profileUser.id) });
+            await updateDoc(profileUserRef, { followers: arrayUnion(currentUser.uid) });
+            setProfileUser(prev => prev ? ({ ...prev, followers: [...prev.followers, currentUser.uid]}) : null);
+            toast({ title: 'Followed', description: `You are now following ${profileUser.name}.` });
+        }
+    } catch(error) {
+        console.error("Error following user:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not complete the action.' });
+    }
   }
 
-  const userPosts = mockPosts.filter(p => p.userId === user.id);
+
+  if (loading || authLoading) {
+      return <div>Loading profile...</div>;
+  }
+  
+  if (!profileUser) {
+    notFound();
+  }
+  
+  const isOwnProfile = currentUser?.uid === profileUser.id;
 
   return (
     <div className="p-4 md:p-0">
         <Card className="overflow-hidden">
             <div className="h-32 md:h-48 bg-gradient-to-r from-primary/20 to-accent/20 relative">
-                <Button size="sm" variant="outline" className="absolute bottom-2 right-2 bg-background/50 backdrop-blur-sm">
+                {isOwnProfile && <Button size="sm" variant="outline" className="absolute bottom-2 right-2 bg-background/50 backdrop-blur-sm">
                     <Camera className="mr-2 h-4 w-4" /> Cover Photo
-                </Button>
+                </Button>}
             </div>
             <div className="p-4 relative">
                 <div className="absolute -top-16 left-6 group">
                     <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-card shadow-md">
-                        <AvatarImage src={user.avatarUrl} data-ai-hint="person portrait" />
-                        <AvatarFallback className="text-4xl">{user.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={profileUser.avatarUrl} data-ai-hint="person portrait" />
+                        <AvatarFallback className="text-4xl">{profileUser.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                     {isOwnProfile && <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                         <Camera className="text-white w-8 h-8"/>
-                    </div>
+                    </div>}
                 </div>
                 
                 <div className="flex justify-end items-center mb-4">
-                   <div className="flex gap-2">
-                     <Button>
-                        <UserPlus className="mr-2 h-4 w-4" /> Follow
-                     </Button>
-                     <Button variant="outline">
-                        <Mail className="mr-2 h-4 w-4"/> Message
-                     </Button>
-                   </div>
+                   {!isOwnProfile && currentUser && (
+                     <div className="flex gap-2">
+                       <Button onClick={handleFollow}>
+                          {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                          {isFollowing ? 'Following' : 'Follow'}
+                       </Button>
+                       <Button variant="outline">
+                          <Mail className="mr-2 h-4 w-4"/> Message
+                       </Button>
+                     </div>
+                   )}
                 </div>
 
                 <div className="pt-8 md:pt-12">
-                    <h2 className="text-2xl font-bold font-headline">{user.name}</h2>
-                    <p className="text-muted-foreground">@{user.username}</p>
-                    <p className="mt-2 text-foreground/90">{user.bio}</p>
+                    <h2 className="text-2xl font-bold font-headline">{profileUser.name}</h2>
+                    <p className="text-muted-foreground">@{profileUser.username}</p>
+                    <p className="mt-2 text-foreground/90">{profileUser.bio}</p>
                 </div>
 
                 <div className="flex gap-6 mt-4 text-sm">
                     <div>
-                        <span className="font-bold">{user.following}</span>
+                        <span className="font-bold">{profileUser.following.length}</span>
                         <span className="text-muted-foreground"> Following</span>
                     </div>
                     <div>
-                        <span className="font-bold">{user.followers}</span>
+                        <span className="font-bold">{profileUser.followers.length}</span>
                         <span className="text-muted-foreground"> Followers</span>
                     </div>
                 </div>
@@ -75,7 +170,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
             </TabsList>
             <TabsContent value="posts" className="mt-4 space-y-4">
                 {userPosts.map(post => (
-                    <PostCard key={post.id} post={post} user={user} />
+                    <PostCard key={post.id} post={post} user={profileUser} />
                 ))}
                  {userPosts.length === 0 && (
                     <Card>

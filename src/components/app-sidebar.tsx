@@ -1,7 +1,8 @@
+
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Home, Compass, Bell, User, LogOut, PenSquare, Settings, Moon, Sun, Languages, Palette } from "lucide-react";
 import { UmmahConnectLogo } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,9 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/use-auth";
+import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
@@ -36,10 +40,36 @@ const themes = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      router.push('/login');
+    } catch (error) {
+      console.error("Logout Error:", error);
+      toast({ variant: 'destructive', title: "Error", description: "Failed to log out." });
+    }
+  }
 
   const handleThemeChange = (themeClass: string) => {
-    document.documentElement.className = '';
-    document.documentElement.classList.add(themeClass);
+    // Remove any existing theme classes
+    document.documentElement.classList.remove(...themes.map(t => t.class));
+    document.documentElement.classList.remove('light', 'dark');
+
+    // Add the new theme class
+    if (themeClass === 'light' || themeClass === 'dark') {
+      document.documentElement.classList.add(themeClass);
+    } else {
+      document.documentElement.classList.add(themeClass);
+    }
+  }
+
+  if (!user) {
+    return null; // Or a loading skeleton
   }
 
   return (
@@ -91,7 +121,6 @@ export default function AppSidebar() {
                         <DropdownMenuSubContent>
                             <DropdownMenuItem onClick={() => document.documentElement.classList.remove('dark')}>Light</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => document.documentElement.classList.add('dark')}>Dark</DropdownMenuItem>
-                            <DropdownMenuItem>System</DropdownMenuItem>
                         </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                 </DropdownMenuSub>
@@ -128,15 +157,15 @@ export default function AppSidebar() {
 
         <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary">
             <Avatar>
-                <AvatarImage src="https://placehold.co/100x100/17633D/E0E5DA" alt="User Avatar" data-ai-hint="woman portrait" />
-                <AvatarFallback>AB</AvatarFallback>
+                <AvatarImage src={user.avatarUrl || user.photoURL || undefined} alt="User Avatar" data-ai-hint="person portrait" />
+                <AvatarFallback>{user.name ? user.name.charAt(0) : user.email?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div>
-                <p className="font-bold">Aisha Bint Abu Bakr</p>
-                <p className="text-sm text-muted-foreground">@aisha_bint_abubakr</p>
+                <p className="font-bold">{user.name || user.displayName}</p>
+                <p className="text-sm text-muted-foreground">@{user.username || user.email?.split('@')[0]}</p>
             </div>
         </div>
-        <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive">
+        <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive" onClick={handleLogout}>
           <LogOut className="w-5 h-5" />
           <span>Logout</span>
         </Button>

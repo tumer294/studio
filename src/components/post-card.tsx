@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Post, User, Comment as CommentType } from "@/lib/types";
 import Link from 'next/link';
 import Image from 'next/image';
@@ -18,32 +19,48 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from '@/hooks/use-auth';
+import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 interface PostCardProps {
   post: Post;
   user: User;
 }
 
-function CommentSection({ comments: initialComments, currentUserAvatar }: { comments: CommentType[], currentUserAvatar: string }) {
+function CommentSection({ comments: initialComments, currentUserAvatar, postId }: { comments: CommentType[], currentUserAvatar: string, postId: string }) {
+    const { user: currentUser } = useAuth();
+    const { toast } = useToast();
     const [comments, setComments] = useState(initialComments);
     const [newComment, setNewComment] = useState("");
 
-    const handleCommentSubmit = (e: React.FormEvent) => {
+    const handleCommentSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if(!newComment.trim()) return;
+        if(!newComment.trim() || !currentUser) return;
 
         const newCommentObj: CommentType = {
             id: `comment-${Date.now()}`,
             user: {
-                username: mockUsers['user-3'].username,
-                name: mockUsers['user-3'].name,
-                avatarUrl: mockUsers['user-3'].avatarUrl,
+                username: currentUser.username || currentUser.email!.split('@')[0],
+                name: currentUser.name || currentUser.displayName!,
+                avatarUrl: currentUser.avatarUrl || currentUser.photoURL!,
             },
             content: newComment,
-            createdAt: 'Just now'
+            createdAt: new Date().toISOString()
         }
-        setComments(prev => [newCommentObj, ...prev]);
-        setNewComment("");
+        
+        try {
+            const postRef = doc(db, 'posts', postId);
+            await updateDoc(postRef, {
+                comments: arrayUnion(newCommentObj)
+            });
+            setComments(prev => [...prev, newCommentObj]); // Optimistically update UI
+            setNewComment("");
+        } catch (error) {
+            console.error("Error adding comment: ", error);
+            toast({ variant: 'destructive', title: "Error", description: "Could not add comment."})
+        }
     }
 
     return (
@@ -76,15 +93,50 @@ function CommentSection({ comments: initialComments, currentUserAvatar }: { comm
 }
 
 export default function PostCard({ post, user }: PostCardProps) {
+  const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const [isCommentSectionOpen, setIsCommentSectionOpen] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes);
 
-  const handleLike = () => {
-      setIsLiked(!isLiked);
-      setLikeCount(prev => isLiked ? prev -1 : prev + 1);
+  const isLiked = currentUser ? post.likes.includes(currentUser.uid) : false;
+  
+  const handleLike = async () => {
+      if (!currentUser) return;
+      const postRef = doc(db, 'posts', post.id);
+      try {
+          if (isLiked) {
+              await updateDoc(postRef, {
+                  likes: arrayRemove(currentUser.uid)
+              });
+          } else {
+              await updateDoc(postRef, {
+                  likes: arrayUnion(currentUser.uid)
+              });
+          }
+      } catch (error) {
+          console.error("Error liking post: ", error);
+          toast({ variant: "destructive", title: "Error", description: "Could not update like."})
+      }
+  }
+
+  const handleDelete = async () => {
+    if (!currentUser || currentUser.uid !== post.userId) {
+        toast({variant: 'destructive', title: 'Unauthorized', description: 'You can only delete your own posts.'});
+        return;
+    }
+    if (window.confirm('Are you sure you want to delete this post?')) {
+        try {
+            await deleteDoc(doc(db, 'posts', post.id));
+            toast({title: 'Success', description: 'Post deleted successfully.'});
+        } catch (error) {
+            console.error("Error deleting post:", error);
+            toast({variant: 'destructive', title: 'Error', description: 'Could not delete post.'});
+        }
+    }
   }
   
+  const postDate = post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString() : 'Just now';
+
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-center gap-3 p-4">
@@ -97,27 +149,29 @@ export default function PostCard({ post, user }: PostCardProps) {
         <div className="flex-1">
           <Link href={`/profile/${user.username}`} className="font-bold hover:underline">{user.name}</Link>
           <p className="text-sm text-muted-foreground">
-            @{user.username} · {post.createdAt}
+            @{user.username} · {postDate}
           </p>
         </div>
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                 <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-5 w-5" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                    <Edit className="mr-2 h-4 w-4" />
-                    <span>Edit Post</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    <span>Delete Post</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        {currentUser && (currentUser.uid === post.userId || currentUser.role === 'admin') && (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                        <MoreHorizontal className="h-5 w-5" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                        <Edit className="mr-2 h-4 w-4" />
+                        <span>Edit Post</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        <span>Delete Post</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )}
       </CardHeader>
       <CardContent className="px-4 pb-2">
         <p className="whitespace-pre-wrap">{post.content}</p>
@@ -150,7 +204,7 @@ export default function PostCard({ post, user }: PostCardProps) {
         <div className="w-full flex justify-around">
            <Button variant="ghost" className={cn("flex items-center gap-2 text-muted-foreground transition-colors", isLiked ? 'text-destructive' : 'hover:text-destructive')} onClick={handleLike}>
             <Heart className={cn("w-5 h-5", isLiked && 'fill-current')} />
-            <span>{likeCount}</span>
+            <span>{post.likes.length}</span>
           </Button>
           <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-primary" onClick={() => setIsCommentSectionOpen(!isCommentSectionOpen)}>
             <MessageCircle className="w-5 h-5" />
@@ -161,7 +215,7 @@ export default function PostCard({ post, user }: PostCardProps) {
             <span>Share</span>
           </Button>
         </div>
-        {isCommentSectionOpen && <CommentSection comments={post.comments} currentUserAvatar={mockUsers['user-3'].avatarUrl} />}
+        {isCommentSectionOpen && <CommentSection comments={post.comments} currentUserAvatar={currentUser!.avatarUrl || currentUser!.photoURL!} postId={post.id} />}
       </CardFooter>
     </Card>
   );
