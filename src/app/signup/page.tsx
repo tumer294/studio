@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -43,6 +44,7 @@ export default function SignupPage() {
         followers: [],
         following: [],
         createdAt: new Date(),
+        role: email === 'admin@example.com' ? 'admin' : 'user', // Assign role
       });
 
 
@@ -77,6 +79,7 @@ export default function SignupPage() {
         followers: [],
         following: [],
         createdAt: new Date(),
+        role: 'user', // Default role for Google signup
       });
 
       toast({ title: "Success", description: "Signed up successfully with Google!" });

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -52,7 +53,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (typeof isMobile === "undefined") {
-    return <AppLoadingSkeleton />;
+    return <AppLoading-skeleton />;
   }
 
   return (
