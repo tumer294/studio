@@ -5,15 +5,15 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration - THIS IS A PUBLIC CONFIG
 const firebaseConfig = {
-  "projectId": "ummahconnect-po02n",
-  "appId": "1:697048800724:web:89110d7a716715f4214a41",
-  "storageBucket": "ummahconnect-po02n.appspot.com",
-  "apiKey": "AIzaSyDFxK2YV9zU9Dqf8T0_J3d2j4l5k6n7m8",
-  "authDomain": "ummahconnect-po02n.firebaseapp.com",
-  "messagingSenderId": "697048800724",
-  "measurementId": "G-XXXXXXXXXX"
+  apiKey: "AIzaSyDFxK2YV9zU9Dqf8T0_J3d2j4l5k6n7m8",
+  authDomain: "ummahconnect-po02n.firebaseapp.com",
+  projectId: "ummahconnect-po02n",
+  storageBucket: "ummahconnect-po02n.appspot.com",
+  messagingSenderId: "697048800724",
+  appId: "1:697048800724:web:89110d7a716715f4214a41",
+  measurementId: "G-XXXXXXXXXX"
 };
 
 // Initialize Firebase
