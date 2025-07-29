@@ -182,94 +182,91 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       return null;
     }
     const url = post.mediaUrl;
-    
-    // Priority 1: Check for direct image or video file extensions first.
+
+    // Highest priority: Check for direct media file extensions.
     const isImageFile = /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
     if (isImageFile) {
-        return (
-            <div className="mt-3 rounded-lg overflow-hidden border">
-                <Image
-                    src={url}
-                    alt="Post content"
-                    width={600}
-                    height={400}
-                    className="w-full h-auto object-cover"
-                    data-ai-hint={post['data-ai-hint'] || 'post image'}
-                />
-            </div>
-        );
+      return (
+        <div className="mt-3 rounded-lg overflow-hidden border">
+          <Image
+            src={url}
+            alt="Post content"
+            width={600}
+            height={400}
+            className="w-full h-auto object-cover"
+            data-ai-hint={post['data-ai-hint'] || 'post image'}
+          />
+        </div>
+      );
     }
     
     const isVideoFile = /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
     if (isVideoFile) {
-        return (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                <video src={url} controls className="w-full h-full"></video>
-            </div>
-        );
+      return (
+        <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+          <video src={url} controls className="w-full h-full"></video>
+        </div>
+      );
     }
 
-    // Priority 2: Check for specific embeddable services like YouTube.
+    // Second priority: Check for specific embeddable services.
     const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
     if (isYoutube) {
-        const videoIdMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
-        const videoId = videoIdMatch ? videoIdMatch[1] : null;
-        if (!videoId) return null;
-        return (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                <iframe
-                    className="w-full h-full"
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                ></iframe>
-            </div>
-        );
-    }
-
-    // Priority 3: Fallback for other links, with special handling for sites that block iframes.
-    const blockedDomains = ['facebook.com', 'instagram.com', 'twitter.com', 'x.com'];
-    const isBlocked = blockedDomains.some(domain => url.includes(domain));
-    
-    if(isBlocked) {
-        let hostname = 'link';
-        try {
-            hostname = new URL(url).hostname;
-        } catch (e) { /* ignore invalid urls */ }
-        
-        return (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted/50 transition-colors">
-              <div className="p-4 bg-muted/20">
-                <div className="flex items-center gap-3">
-                    <LinkIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                    <div className="flex-1 overflow-hidden">
-                        <p className="font-semibold truncate">{`View on ${hostname}`}</p>
-                        <p className="text-sm text-muted-foreground truncate">Click to view on {hostname}</p>
-                    </div>
-                </div>
-              </div>
-            </a>
-        );
-    }
-
-    // Last resort: Try to iframe any other link. This may or may not work depending on the site.
-    if (post.type === 'link') {
+      const videoIdMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
+      const videoId = videoIdMatch ? videoIdMatch[1] : null;
+      if (!videoId) return null;
       return (
         <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
           <iframe
-            className="w-full h-full bg-white"
-            src={url}
-            title="Shared link"
+            className="w-full h-full"
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title="YouTube video player"
             frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           ></iframe>
         </div>
       );
     }
+    
+    const isFacebookVideo = url.includes('facebook.com/watch') || url.includes('facebook.com/videos');
+    if(isFacebookVideo) {
+        const encodedUrl = encodeURIComponent(url);
+        return (
+             <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                <iframe
+                    src={`https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`}
+                    width="560"
+                    height="315"
+                    style={{border:'none', overflow:'hidden'}}
+                    frameBorder="0"
+                    allowFullScreen={true}
+                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                ></iframe>
+            </div>
+        )
+    }
 
-    return null;
+
+    // Last resort: Show a link card for everything else.
+    let hostname = 'link';
+    try {
+        hostname = new URL(url).hostname.replace('www.', '');
+    } catch (e) { /* ignore invalid urls */ }
+    
+    return (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted/50 transition-colors">
+          <div className="p-4 bg-muted/20">
+            <div className="flex items-center gap-3">
+                <LinkIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 overflow-hidden">
+                    <p className="font-semibold truncate">{`View on ${hostname}`}</p>
+                    <p className="text-sm text-muted-foreground truncate">{url}</p>
+                </div>
+            </div>
+          </div>
+        </a>
+    );
   };
 
 
@@ -334,3 +331,5 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   );
 }
  
+
+    
