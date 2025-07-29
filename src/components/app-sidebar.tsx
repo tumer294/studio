@@ -23,14 +23,9 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { useDailyWisdom } from "@/hooks/use-daily-wisdom";
+import { useTranslation } from "@/hooks/use-translation";
+import { languages } from "@/app-strings";
 
-const navItems = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/explore", label: "Explore", icon: Compass },
-  { href: "/notifications", label: "Notifications", icon: Bell },
-  { href: "/profile/me", label: "Profile", icon: User },
-];
 
 const themes = [
     { name: "Islamic Green", class: "theme-default" },
@@ -39,26 +34,19 @@ const themes = [
     { name: "Dark", class: "dark" },
 ]
 
-const languages = [
-    { name: "English", code: "en" },
-    { name: "Español", code: "es" },
-    { name: "Français", code: "fr" },
-    { name: "Türkçe", code: "tr" },
-    { name: "العربية", code: "ar" },
-    { name: "हिन्दी", code: "hi" },
-    { name: "বাংলা", code: "bn" },
-    { name: "Русский", code: "ru" },
-    { name: "Português", code: "pt" },
-    { name: "Bahasa Indonesia", code: "id" },
-]
-
-
 export default function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { setLanguage } = useDailyWisdom();
+  const { setLanguage, t } = useTranslation();
+
+  const navItems = [
+    { href: "/", label: t.home, icon: Home },
+    { href: "/explore", label: t.explore, icon: Compass },
+    { href: "/notifications", label: t.notifications, icon: Bell },
+    { href: "/profile/me", label: t.profile, icon: User },
+  ];
 
   const handleLogout = async () => {
     try {
@@ -113,7 +101,7 @@ export default function AppSidebar() {
         ))}
         <Button size="lg" className="mt-4 flex items-center gap-3 justify-start text-lg px-4 py-3 h-auto">
             <PenSquare className="w-6 h-6" />
-            <span>Create Post</span>
+            <span>{t.createPost}</span>
         </Button>
       </nav>
 
@@ -122,16 +110,16 @@ export default function AppSidebar() {
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="justify-start gap-3 text-muted-foreground hover:text-foreground">
                     <Settings className="w-5 h-5" />
-                    <span>Settings</span>
+                    <span>{t.settings}</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end">
-                <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+                <DropdownMenuLabel>{t.appearance}</DropdownMenuLabel>
                 <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                         <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                         <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                        <span className="ml-2">Toggle theme</span>
+                        <span className="ml-2">{t.toggleTheme}</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                         <DropdownMenuSubContent>
@@ -143,7 +131,7 @@ export default function AppSidebar() {
                  <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                         <Palette className="mr-2 h-4 w-4" />
-                        <span>Color Theme</span>
+                        <span>{t.colorTheme}</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                         <DropdownMenuSubContent>
@@ -157,7 +145,7 @@ export default function AppSidebar() {
                  <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                         <Languages className="mr-2 h-4 w-4" />
-                        <span>Language</span>
+                        <span>{t.language}</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                         <DropdownMenuSubContent>
@@ -184,7 +172,7 @@ export default function AppSidebar() {
         </div>
         <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive" onClick={handleLogout}>
           <LogOut className="w-5 h-5" />
-          <span>Logout</span>
+          <span>{t.logout}</span>
         </Button>
       </div>
     </aside>

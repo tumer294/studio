@@ -17,7 +17,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDailyWisdom } from "@/hooks/use-daily-wisdom";
+import { useTranslation } from "@/hooks/use-translation";
+import { languages as appLanguages } from "@/app-strings";
 
 const themes = [
     { name: "Islamic Green", class: "theme-default" },
@@ -26,21 +27,9 @@ const themes = [
     { name: "Dark", class: "dark" },
 ];
 
-const languages = [
-    { name: "English", code: "en" },
-    { name: "Español", code: "es" },
-    { name: "Français", code: "fr" },
-    { name: "Türkçe", code: "tr" },
-    { name: "العربية", code: "ar" },
-    { name: "हिन्दी", code: "hi" },
-    { name: "বাংলা", code: "bn" },
-    { name: "Русский", code: "ru" },
-    { name: "Português", code: "pt" },
-    { name: "Bahasa Indonesia", code: "id" },
-];
 
 export default function MobileHeader() {
-  const { setLanguage } = useDailyWisdom();
+  const { setLanguage, t } = useTranslation();
 
   const handleThemeChange = (themeClass: string) => {
     document.documentElement.classList.remove(...themes.map(t => t.class));
@@ -67,12 +56,12 @@ export default function MobileHeader() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+          <DropdownMenuLabel>{t.appearance}</DropdownMenuLabel>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="ml-2">Toggle theme</span>
+              <span className="ml-2">{t.toggleTheme}</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
@@ -84,7 +73,7 @@ export default function MobileHeader() {
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <Palette className="mr-2 h-4 w-4" />
-              <span>Color Theme</span>
+              <span>{t.colorTheme}</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
@@ -98,11 +87,11 @@ export default function MobileHeader() {
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <Languages className="mr-2 h-4 w-4" />
-              <span>Language</span>
+              <span>{t.language}</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
-                {languages.map((lang) => (
+                {appLanguages.map((lang) => (
                   <DropdownMenuItem key={lang.code} onClick={() => setLanguage(lang.code)}>
                     {lang.name}
                   </DropdownMenuItem>

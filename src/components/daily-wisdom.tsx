@@ -5,11 +5,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { wisdomData, type Wisdom } from "@/data/wisdom";
 import { Lightbulb } from "lucide-react";
-import { useDailyWisdom } from "@/hooks/use-daily-wisdom";
+import { useTranslation } from "@/hooks/use-translation";
+import type { Language } from "@/app-strings";
 
 export default function DailyWisdom() {
   const [wisdom, setWisdom] = useState<Wisdom | null>(null);
-  const { language } = useDailyWisdom();
+  const { language } = useTranslation();
 
   useEffect(() => {
     // This ensures the code only runs on the client after hydration
@@ -21,8 +22,16 @@ export default function DailyWisdom() {
     const dayOfYear = Math.floor(diff / oneDay);
 
     const wisdomForLanguage = wisdomData.filter(w => w.lang === language);
-    const randomIndex = dayOfYear % wisdomForLanguage.length;
-    setWisdom(wisdomForLanguage[randomIndex]);
+    if (wisdomForLanguage.length > 0) {
+      const randomIndex = dayOfYear % wisdomForLanguage.length;
+      setWisdom(wisdomForLanguage[randomIndex]);
+    } else {
+      // Fallback to English if no wisdom for selected language
+      const fallbackWisdom = wisdomData.filter(w => w.lang === 'en');
+      const randomIndex = dayOfYear % fallbackWisdom.length;
+      setWisdom(fallbackWisdom[randomIndex]);
+    }
+
   }, [language]);
 
   if (!wisdom) {

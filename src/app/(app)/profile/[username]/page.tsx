@@ -54,7 +54,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
-  const username = Array.isArray(params.username) ? params.username[0] : params.username;
+  const usernameFromUrl = Array.isArray(params.username) ? params.username[0] : params.username;
 
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
@@ -68,24 +68,27 @@ export default function ProfilePage() {
     let unsubPosts: (() => void) | undefined;
 
     const fetchUserProfile = async () => {
+      // Don't do anything until authentication is finished
+      if (authLoading) {
+        return;
+      }
+        
       setLoading(true);
       
-      let userToFetchUsername = username;
+      let userToFetchUsername = usernameFromUrl;
 
-      if (username === 'me') {
-        if (currentUser) {
-          userToFetchUsername = currentUser.username;
-        } else if (!authLoading) {
+      // If the URL is /profile/me, we need to get the current user's username first
+      if (usernameFromUrl === 'me') {
+        if (!currentUser) {
+           // If not logged in, redirect to login page
            router.push('/login');
            return;
-        } else {
-            // Still loading auth, wait
-            return;
         }
+        userToFetchUsername = currentUser.username;
       }
 
       if (!userToFetchUsername) {
-          if(!authLoading) setLoading(false);
+          setLoading(false);
           return;
       }
       
@@ -103,6 +106,7 @@ export default function ProfilePage() {
             if(active) setProfileUser({ id: doc.id, ...doc.data() } as User);
           });
 
+          // Fetch posts and sort them on the client side to avoid composite index requirement
           const postsRef = collection(db, "posts");
           const postsQuery = query(postsRef, where("userId", "==", userDoc.id));
           
@@ -133,7 +137,7 @@ export default function ProfilePage() {
         if (unsubPosts) unsubPosts();
     }
 
-  }, [username, currentUser, authLoading, router, toast]);
+  }, [usernameFromUrl, currentUser, authLoading, router, toast]);
 
   const handleFollow = async () => {
     if (!currentUser || !profileUser || currentUser.uid === profileUser.id) return;

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,16 +6,18 @@ import { usePathname } from "next/navigation";
 import { Home, Compass, Bell, User, PenSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
-const navItems = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/explore", label: "Explore", icon: Compass },
-  { href: "/notifications", label: "Notifications", icon: Bell },
-  { href: "/profile/me", label: "Profile", icon: User },
-];
+import { useTranslation } from "@/hooks/use-translation";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
+  const { t } = useTranslation();
+
+  const navItems = [
+    { href: "/", label: t.home, icon: Home },
+    { href: "/explore", label: t.explore, icon: Compass },
+    { href: "/notifications", label: t.notifications, icon: Bell },
+    { href: "/profile/me", label: t.profile, icon: User },
+  ];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm border-t">
@@ -33,7 +36,7 @@ export default function MobileBottomNav() {
           </Link>
         ))}
 
-        <Button size="icon" className="w-14 h-14 -mt-6 rounded-full shadow-lg" aria-label="Create Post">
+        <Button size="icon" className="w-14 h-14 -mt-6 rounded-full shadow-lg" aria-label={t.createPost}>
             <PenSquare className="w-6 h-6" />
         </Button>
         

@@ -3,7 +3,7 @@ import type {Metadata} from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 import { AuthProvider } from '@/hooks/use-auth-provider';
-import { DailyWisdomProvider } from '@/hooks/use-daily-wisdom';
+import { TranslationProvider } from '@/hooks/use-translation';
 
 export const metadata: Metadata = {
   title: 'UmmahConnect',
@@ -24,10 +24,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <DailyWisdomProvider>
+          <TranslationProvider>
             {children}
             <Toaster />
-          </DailyWisdomProvider>
+          </TranslationProvider>
         </AuthProvider>
       </body>
     </html>
