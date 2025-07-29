@@ -20,16 +20,16 @@ export default function MobileBottomNav() {
     <div className="fixed bottom-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm border-t">
       <nav className="flex justify-around items-center h-16">
         {navItems.slice(0, 2).map((item) => (
-          <Link key={item.href} href={item.href} legacyBehavior passHref>
-            <a
-              className={cn(
-                "flex flex-col items-center gap-1 p-2 rounded-md transition-colors",
-                pathname === item.href ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <item.icon className="w-6 h-6" />
-              <span className="text-xs font-medium">{item.label}</span>
-            </a>
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex flex-col items-center gap-1 p-2 rounded-md transition-colors",
+              pathname === item.href ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            <item.icon className="w-6 h-6" />
+            <span className="text-xs font-medium">{item.label}</span>
           </Link>
         ))}
 
@@ -38,16 +38,16 @@ export default function MobileBottomNav() {
         </Button>
         
         {navItems.slice(2).map((item) => (
-            <Link key={item.href} href={item.href} legacyBehavior passHref>
-              <a
-                className={cn(
-                  "flex flex-col items-center gap-1 p-2 rounded-md transition-colors",
-                  pathname === item.href ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <item.icon className="w-6 h-6" />
-                <span className="text-xs font-medium">{item.label}</span>
-              </a>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center gap-1 p-2 rounded-md transition-colors",
+                pathname === item.href ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <item.icon className="w-6 h-6" />
+              <span className="text-xs font-medium">{item.label}</span>
             </Link>
           ))}
       </nav>

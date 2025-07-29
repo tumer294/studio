@@ -27,18 +27,18 @@ export default function AppSidebar() {
       
       <nav className="flex-1 flex flex-col gap-2">
         {navItems.map((item) => (
-          <Link key={item.href} href={item.href} legacyBehavior passHref>
-            <a
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg text-lg font-medium transition-colors",
-                pathname === item.href
-                  ? "bg-primary text-primary-foreground"
-                  : "text-foreground/70 hover:bg-accent/50 hover:text-foreground"
-              )}
-            >
-              <item.icon className="w-6 h-6" />
-              <span>{item.label}</span>
-            </a>
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-lg text-lg font-medium transition-colors",
+              pathname === item.href
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground/70 hover:bg-accent/50 hover:text-foreground"
+            )}
+          >
+            <item.icon className="w-6 h-6" />
+            <span>{item.label}</span>
           </Link>
         ))}
         <Button size="lg" className="mt-4 flex items-center gap-3 justify-start text-lg px-4 py-3 h-auto">
