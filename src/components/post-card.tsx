@@ -181,78 +181,98 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       return null;
     }
     
-    // REGEX to check for image and video file extensions
-    const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(post.mediaUrl);
-    const isVideo = /\.(mp4|webm|mov)$/i.test(post.mediaUrl);
-    const isYoutube = post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be');
-
-    // Case 1: Directly uploaded image
-    if (post.type === 'image' && post.mediaUrl) {
-      return (
-        <div className="mt-3 rounded-lg overflow-hidden border">
-          <Image
-            src={post.mediaUrl}
-            alt="Post image"
-            width={600}
-            height={400}
-            className="w-full h-auto object-cover"
-            data-ai-hint={post['data-ai-hint']}
-          />
-        </div>
-      );
+    if (post.type === 'image') {
+        return (
+            <div className="mt-3 rounded-lg overflow-hidden border">
+                <Image
+                    src={post.mediaUrl}
+                    alt="Post image"
+                    width={600}
+                    height={400}
+                    className="w-full h-auto object-cover"
+                    data-ai-hint={post['data-ai-hint']}
+                />
+            </div>
+        );
     }
     
-    // Case 2: YouTube video link
-    if (isYoutube) {
-      const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
-      return (
-        <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-          <iframe
-            className="w-full h-full"
-            src={`https://www.youtube.com/embed/${videoId}`}
-            title="YouTube video player"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
-        </div>
-      );
+    if (post.type === 'video') {
+         const isYoutube = post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be');
+         if (isYoutube) {
+            const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
+            return (
+                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+                </div>
+            );
+         }
+         // Assumes a direct video link that can be played by the <video> tag
+         return (
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+              <video src={post.mediaUrl} controls className="w-full h-full"></video>
+            </div>
+          );
     }
 
-    // Case 3: Direct link to a video file
-    if (isVideo) {
-      return (
-        <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-          <video src={post.mediaUrl} controls className="w-full h-full"></video>
-        </div>
-      );
-    }
-
-    // Case 4: Direct link to an image file
-    if (isImage) {
-      return (
-        <div className="mt-3 rounded-lg overflow-hidden border">
-          <Image
-            src={post.mediaUrl}
-            alt="Post image from link"
-            width={600}
-            height={400}
-            className="w-full h-auto object-cover"
-          />
-        </div>
-      );
-    }
-
-    // Case 5: Any other link
     if (post.type === 'link') {
-      return (
-        <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
-          <div className="p-3">
-            <p className="font-bold truncate">{post.content || post.mediaUrl}</p>
-            <p className="text-sm text-muted-foreground truncate">{post.mediaUrl}</p>
-          </div>
-        </a>
-      );
+        const isImageLink = /\.(jpeg|jpg|gif|png|webp)$/i.test(post.mediaUrl);
+        const isVideoLink = /\.(mp4|webm|mov)$/i.test(post.mediaUrl);
+        const isYoutube = post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be');
+
+        if (isYoutube) {
+             const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
+              return (
+                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                  <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              );
+        }
+
+        if (isImageLink) {
+             return (
+                <div className="mt-3 rounded-lg overflow-hidden border">
+                  <Image
+                    src={post.mediaUrl}
+                    alt="Post image from link"
+                    width={600}
+                    height={400}
+                    className="w-full h-auto object-cover"
+                  />
+                </div>
+              );
+        }
+        
+        if(isVideoLink) {
+             return (
+                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                  <video src={post.mediaUrl} controls className="w-full h-full"></video>
+                </div>
+              );
+        }
+        
+        // Fallback for any other link
+        return (
+            <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
+              <div className="p-3">
+                <p className="font-bold truncate">{post.content || post.mediaUrl}</p>
+                <p className="text-sm text-muted-foreground truncate">{post.mediaUrl}</p>
+              </div>
+            </a>
+        );
     }
 
     return null;

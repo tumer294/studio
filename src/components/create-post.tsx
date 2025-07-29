@@ -31,13 +31,23 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const selectedFile = event.target.files[0];
-       if (selectedFile.size > 5 * 1024 * 1024 && (activeTab === 'image')) {
+       const fileType = activeTab;
+       if (fileType === 'image' && selectedFile.size > 5 * 1024 * 1024) {
             toast({
                 variant: 'destructive',
                 title: 'File Too Large',
-                description: 'Please select a file smaller than 5MB.',
+                description: 'Please select an image smaller than 5MB.',
             });
-            event.target.value = ''; // Reset file input
+            event.target.value = ''; 
+            return;
+        }
+       if (fileType === 'video' && selectedFile.size > 50 * 1024 * 1024) { // 50MB limit for video
+            toast({
+                variant: 'destructive',
+                title: 'File Too Large',
+                description: 'Please select a video smaller than 50MB.',
+            });
+            event.target.value = '';
             return;
         }
       setFile(selectedFile);
@@ -65,11 +75,25 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
         let postType: Post['type'] = activeTab;
 
         if (file) {
-            postType = 'image';
+            // Determine post type from the file's MIME type
+            if (file.type.startsWith('image/')) {
+                postType = 'image';
+            } else if (file.type.startsWith('video/')) {
+                postType = 'video';
+            } else {
+                 toast({variant: 'destructive', title: 'Unsupported File', description: 'Please upload a valid image or video file.'});
+                 setIsUploading(false);
+                 return;
+            }
+
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
+        } else {
+             // For link/video tabs without file upload, the type is set by the active tab
+            postType = activeTab;
         }
+
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
             content: postContent,
@@ -96,6 +120,13 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
       { id: 'video', icon: Film, label: 'Video' },
       { id: 'link', icon: Link2Icon, label: 'Link' },
   ] as const;
+  
+  // Clear file when switching tabs to avoid confusion
+  const handleTabClick = (tabId: "text" | "image" | "video" | "link") => {
+      setFile(null);
+      setMediaUrl("");
+      setActiveTab(tabId);
+  }
 
   const isPostButtonDisabled = (postContent.trim() === "" && !file && mediaUrl.trim() === "") || isUploading;
 
@@ -127,7 +158,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
                 />
               </div>
             )}
-            {(activeTab === 'video') && (
+            {(activeTab === 'video' && !file) && ( // Show URL input only if a file isn't selected
                <div className="mt-2">
                  <Input type="url" placeholder="Enter video link to embed (e.g., YouTube)" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
               </div>
@@ -141,7 +172,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
             <div className="flex justify-between items-center mt-2">
                 <div className="flex gap-1">
                     {TABS.map(tab => (
-                        <Button key={tab.id} variant={activeTab === tab.id ? "secondary" : "ghost"} size="icon" onClick={() => setActiveTab(tab.id)} aria-label={tab.label} disabled={isUploading}>
+                        <Button key={tab.id} variant={activeTab === tab.id ? "secondary" : "ghost"} size="icon" onClick={() => handleTabClick(tab.id)} aria-label={tab.label} disabled={isUploading}>
                             <tab.icon className="w-5 h-5"/>
                         </Button>
                     ))}
