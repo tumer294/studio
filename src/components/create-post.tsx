@@ -44,6 +44,17 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     }
   };
 
+  const resetState = () => {
+    setPostContent("");
+    setMediaUrl("");
+    setFile(null);
+    if(fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
+    setActiveTab("text");
+    setIsUploading(false);
+  }
+
   const handlePost = async () => {
     if ((!postContent.trim() && !file && !mediaUrl.trim()) || isUploading) return;
     
@@ -51,9 +62,10 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     
     try {
         let uploadedMediaUrl = "";
-        let postType: Post['type'] = 'text';
+        let postType: Post['type'] = activeTab;
 
-        if (file && activeTab === 'image') {
+        // If a file is selected, it's always an 'image' type for direct upload
+        if (file) {
             postType = 'image';
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
@@ -72,19 +84,12 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
 
         await onCreatePost(newPost);
         
-        // Reset state after posting
-        setPostContent("");
-        setMediaUrl("");
-        setFile(null);
-        if(fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-        setActiveTab("text");
         toast({ title: 'Success', description: 'Your post has been published.' });
+        resetState();
+
     } catch(error) {
         console.error("Error during post creation:", error);
         toast({variant: 'destructive', title: 'Upload Error', description: 'Could not create the post.'})
-    } finally {
         setIsUploading(false);
     }
   };
@@ -128,7 +133,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
             )}
             {(activeTab === 'video' || activeTab === 'link') && (
               <div className="mt-2">
-                 <Input type="url" placeholder="Enter link to embed (e.g., YouTube)" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
+                 <Input type="url" placeholder="Enter link to embed (e.g., YouTube, Imgur)" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
               </div>
             )}
 

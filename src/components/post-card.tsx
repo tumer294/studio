@@ -140,7 +140,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   }
 
   const handleDelete = async () => {
-    if (!currentUser || currentUser.uid !== post.userId) {
+    if (!currentUser || (currentUser.uid !== post.userId && currentUser.role !== 'admin')) {
         toast({variant: 'destructive', title: 'Unauthorized', description: 'You can only delete your own posts.'});
         return;
     }
@@ -175,6 +175,66 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   };
   
   const postDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'Just now';
+
+  const renderMedia = () => {
+    if (!post.mediaUrl) return null;
+
+    switch (post.type) {
+      case 'image':
+        return (
+          <div className="mt-3 rounded-lg overflow-hidden border">
+            <Image
+              src={post.mediaUrl}
+              alt="Post image"
+              width={600}
+              height={400}
+              className="w-full object-cover"
+              data-ai-hint={post['data-ai-hint']}
+            />
+          </div>
+        );
+      case 'video':
+        const isYoutube = post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be');
+        if (isYoutube) {
+            const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
+            return (
+                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                    <iframe
+                        className="w-full h-full"
+                        src={`https://www.youtube.com/embed/${videoId}`}
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen>
+                    </iframe>
+                </div>
+            )
+        }
+        return (
+          <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+            <video
+              src={post.mediaUrl}
+              controls
+              className="w-full h-full"
+            ></video>
+          </div>
+        );
+      case 'link':
+         return (
+             <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
+                <div className="aspect-video w-full bg-cover bg-center" style={{backgroundImage: `url(https://placehold.co/600x400)`}}>
+                     {/* We can later add a thumbnail fetcher for the link */}
+                </div>
+                <div className="p-3">
+                    <p className="font-bold truncate">{post.mediaUrl}</p>
+                    <p className="text-sm text-muted-foreground truncate">{post.content || 'Click to view link'}</p>
+                </div>
+             </a>
+        );
+      default:
+        return null;
+    }
+  };
 
 
   return (
@@ -215,38 +275,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       </CardHeader>
       <CardContent className="px-4 pb-2">
         <p className="whitespace-pre-wrap">{post.content}</p>
-        {post.type === 'image' && post.mediaUrl && (
-          <div className="mt-3 rounded-lg overflow-hidden border">
-            <Image
-              src={post.mediaUrl}
-              alt="Post image"
-              width={600}
-              height={400}
-              className="w-full object-cover"
-              data-ai-hint={post['data-ai-hint']}
-            />
-          </div>
-        )}
-         {post.type === 'video' && post.mediaUrl && (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                <video
-                    src={post.mediaUrl}
-                    controls
-                    className="w-full h-full"
-                ></video>
-            </div>
-        )}
-        {post.type === 'link' && post.mediaUrl && (
-             <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
-                <div className="aspect-video w-full bg-cover bg-center" style={{backgroundImage: `url(https://placehold.co/600x400)`}}>
-                     {/* We can later add a thumbnail fetcher for the link */}
-                </div>
-                <div className="p-3">
-                    <p className="font-bold truncate">{post.mediaUrl}</p>
-                    <p className="text-sm text-muted-foreground truncate">{post.content || 'Click to view link'}</p>
-                </div>
-             </a>
-        )}
+        {renderMedia()}
       </CardContent>
       <CardFooter className="flex flex-col items-start p-4">
         <div className="w-full flex justify-around">
