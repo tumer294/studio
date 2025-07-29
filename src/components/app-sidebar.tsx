@@ -23,6 +23,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { useDailyWisdom } from "@/hooks/use-daily-wisdom";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
@@ -38,11 +39,26 @@ const themes = [
     { name: "Dark", class: "dark" },
 ]
 
+const languages = [
+    { name: "English", code: "en" },
+    { name: "Español", code: "es" },
+    { name: "Français", code: "fr" },
+    { name: "Türkçe", code: "tr" },
+    { name: "العربية", code: "ar" },
+    { name: "हिन्दी", code: "hi" },
+    { name: "বাংলা", code: "bn" },
+    { name: "Русский", code: "ru" },
+    { name: "Português", code: "pt" },
+    { name: "Bahasa Indonesia", code: "id" },
+]
+
+
 export default function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { setLanguage } = useDailyWisdom();
 
   const handleLogout = async () => {
     try {
@@ -145,10 +161,11 @@ export default function AppSidebar() {
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                         <DropdownMenuSubContent>
-                            <DropdownMenuItem>English</DropdownMenuItem>
-                            <DropdownMenuItem>Türkçe</DropdownMenuItem>
-                            <DropdownMenuItem>العربية</DropdownMenuItem>
-                            <DropdownMenuItem>Español</DropdownMenuItem>
+                            {languages.map((lang) => (
+                                <DropdownMenuItem key={lang.code} onClick={() => setLanguage(lang.code)}>
+                                    {lang.name}
+                                </DropdownMenuItem>
+                            ))}
                         </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                 </DropdownMenuSub>

@@ -1,12 +1,15 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { wisdomData, type Wisdom } from "@/data/wisdom";
 import { Lightbulb } from "lucide-react";
+import { useDailyWisdom } from "@/hooks/use-daily-wisdom";
 
 export default function DailyWisdom() {
   const [wisdom, setWisdom] = useState<Wisdom | null>(null);
+  const { language } = useDailyWisdom();
 
   useEffect(() => {
     // This ensures the code only runs on the client after hydration
@@ -17,9 +20,10 @@ export default function DailyWisdom() {
     const oneDay = 1000 * 60 * 60 * 24;
     const dayOfYear = Math.floor(diff / oneDay);
 
-    const randomIndex = dayOfYear % wisdomData.length;
-    setWisdom(wisdomData[randomIndex]);
-  }, []);
+    const wisdomForLanguage = wisdomData.filter(w => w.lang === language);
+    const randomIndex = dayOfYear % wisdomForLanguage.length;
+    setWisdom(wisdomForLanguage[randomIndex]);
+  }, [language]);
 
   if (!wisdom) {
     // You can return a loading skeleton here
