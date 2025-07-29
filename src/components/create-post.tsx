@@ -25,6 +25,8 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+  
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -47,17 +49,24 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     
     setIsUploading(true);
     let finalMediaUrl = mediaUrl;
+    let postType = activeTab;
 
     try {
         if (file) {
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
+            // Ensure post type is set correctly for uploaded files
+            if (file.type.startsWith('image/')) {
+                postType = 'image';
+            } else if (file.type.startsWith('video/')) {
+                postType = 'video';
+            }
         }
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
             content: postContent,
-            type: activeTab,
+            type: postType,
             mediaUrl: finalMediaUrl,
         };
 
@@ -67,11 +76,13 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
         setPostContent("");
         setMediaUrl("");
         setFile(null);
-        // We can leave the active tab as is, or reset it. Resetting is cleaner.
+        if(fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
         setActiveTab("text");
     } catch(error) {
         console.error("Error during post creation:", error);
-        toast({variant: 'destructive', title: 'Upload Error', description: 'Could not upload the media file.'})
+        toast({variant: 'destructive', title: 'Upload Error', description: 'Could not create the post.'})
     } finally {
         setIsUploading(false);
     }
@@ -103,14 +114,14 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
               onChange={(e) => setPostContent(e.target.value)}
             />
             
-            {activeTab === 'image' && (
+            {(activeTab === 'image' || activeTab === 'video') && (
               <div className="mt-2">
-                <Input type="file" accept="image/*" onChange={handleFileChange} />
-              </div>
-            )}
-             {activeTab === 'video' && (
-              <div className="mt-2">
-                <Input type="file" accept="video/*" onChange={handleFileChange} />
+                <Input 
+                  type="file" 
+                  accept={activeTab === 'image' ? "image/*" : "video/*"} 
+                  onChange={handleFileChange}
+                  ref={fileInputRef}
+                />
               </div>
             )}
             {activeTab === 'link' && (

@@ -105,7 +105,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   const [post, setPost] = useState<Post>(initialPost);
   const [isCommentSectionOpen, setIsCommentSectionOpen] = useState(false);
 
-  // Listen for real-time updates on the post
   useEffect(() => {
       const postRef = doc(db, 'posts', initialPost.id);
       const unsubscribe = onSnapshot(postRef, (doc) => {
@@ -155,6 +154,24 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         }
     }
   }
+
+  const handleShare = async () => {
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'Check out this post on UmmahConnect!',
+                text: post.content,
+                url: window.location.href, // Or a specific post URL if available
+            });
+        } catch (error) {
+            console.error('Error sharing:', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not share post.' });
+        }
+    } else {
+        navigator.clipboard.writeText(window.location.href); // Fallback for desktop
+        toast({ title: 'Link Copied', description: 'Post link copied to clipboard.' });
+    }
+  };
   
   const postDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'Just now';
 
@@ -241,7 +258,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
             <MessageCircle className="w-5 h-5" />
             <span>{(post.comments || []).length}</span>
           </Button>
-          <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-primary">
+          <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-primary" onClick={handleShare}>
             <Share2 className="w-5 h-5" />
             <span>Share</span>
           </Button>

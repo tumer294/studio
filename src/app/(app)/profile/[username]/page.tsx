@@ -63,74 +63,74 @@ export default function ProfilePage() {
   const isFollowing = currentUser && profileUser ? (profileUser.followers || []).includes(currentUser.uid) : false;
 
   useEffect(() => {
-    if (authLoading) return;
+    let active = true;
+    let unsubProfile: (() => void) | undefined;
+    let unsubPosts: (() => void) | undefined;
 
     const fetchUserProfile = async () => {
-      let userToFetch = username;
+      setLoading(true);
+      
+      let userToFetchUsername = username;
+
       if (username === 'me') {
         if (currentUser) {
-          // Redirect to the actual username URL
-          router.replace(`/profile/${currentUser.username}`);
-          return; // Stop execution here
+          userToFetchUsername = currentUser.username;
+        } else if (!authLoading) {
+           router.push('/login');
+           return;
         } else {
-          // Not logged in, can't view 'me'
-          router.push('/login');
-          return;
+            // Still loading auth, wait
+            return;
         }
       }
-      setLoading(true);
 
+      if (!userToFetchUsername) {
+          if(!authLoading) setLoading(false);
+          return;
+      }
+      
       try {
         const usersRef = collection(db, "users");
-        const q = query(usersRef, where("username", "==", userToFetch));
+        const q = query(usersRef, where("username", "==", userToFetchUsername));
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-          setProfileUser(null);
+          if(active) setProfileUser(null);
         } else {
           const userDoc = querySnapshot.docs[0];
           
-          // Use onSnapshot for real-time updates on the profile user
-          const unsubProfile = onSnapshot(userDoc.ref, (doc) => {
-            setProfileUser({ id: doc.id, ...doc.data() } as User);
+          unsubProfile = onSnapshot(userDoc.ref, (doc) => {
+            if(active) setProfileUser({ id: doc.id, ...doc.data() } as User);
           });
 
-          // Fetch posts for this user
           const postsRef = collection(db, "posts");
-          // *** FIX: Query without ordering first to avoid needing a composite index ***
           const postsQuery = query(postsRef, where("userId", "==", userDoc.id));
           
-          const unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
+          unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
             const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-            // *** FIX: Sort the posts on the client-side after fetching ***
             postsData.sort((a, b) => {
                 const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
                 const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
                 return dateB - dateA;
             });
-            setUserPosts(postsData);
+            if(active) setUserPosts(postsData);
           });
-          
-          return () => { // Cleanup snapshots
-              unsubProfile();
-              unsubPosts();
-          }
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
-        setProfileUser(null);
+        if(active) toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
+        if(active) setProfileUser(null);
       } finally {
-        setLoading(false);
+        if(active) setLoading(false);
       }
     };
 
-    const cleanup = fetchUserProfile();
-    
+    fetchUserProfile();
+
     return () => {
-        if(typeof cleanup === 'function') {
-            cleanup();
-        }
+        active = false;
+        if (unsubProfile) unsubProfile();
+        if (unsubPosts) unsubPosts();
     }
 
   }, [username, currentUser, authLoading, router, toast]);
