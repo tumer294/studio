@@ -42,16 +42,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   React.useEffect(() => {
+    // Only redirect if loading is finished and there's no user.
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
 
 
+  // While loading, or if there's no user yet (and we're not finished loading),
+  // show a skeleton screen. This prevents flashes of content or incorrect redirects.
   if (loading || !user) {
     return <AppLoadingSkeleton />;
   }
 
+  // This check is for when the mobile state is not yet determined.
   if (typeof isMobile === "undefined") {
     return <AppLoadingSkeleton />;
   }
