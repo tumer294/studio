@@ -59,8 +59,26 @@ export default function ProfilePage() {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userToFetchUsername, setUserToFetchUsername] = useState<string | null>(null);
 
   const isFollowing = currentUser && profileUser ? (profileUser.followers || []).includes(currentUser.uid) : false;
+
+   useEffect(() => {
+    // This effect determines which username to fetch based on the URL
+    // It waits for auth to be resolved before making a decision for '/profile/me'
+    if (authLoading) return; 
+
+    if (usernameFromUrl === 'me') {
+      if (currentUser) {
+        setUserToFetchUsername(currentUser.username);
+      } else {
+        // Not logged in, but trying to access /profile/me
+        router.replace('/login');
+      }
+    } else {
+      setUserToFetchUsername(usernameFromUrl);
+    }
+  }, [usernameFromUrl, currentUser, authLoading, router]);
 
   useEffect(() => {
     let active = true;
@@ -86,12 +104,19 @@ export default function ProfilePage() {
           });
 
           const postsRef = collection(db, "posts");
-          const postsQuery = query(postsRef, where("userId", "==", userDoc.id), orderBy("createdAt", "desc"));
+          // FIX: The query that requires an index. Removed orderBy.
+          const postsQuery = query(postsRef, where("userId", "==", userDoc.id));
           
           unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
             if(active) {
                 const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                setUserPosts(postsData);
+                // FIX: Sort posts on the client-side
+                const sortedPosts = postsData.sort((a, b) => {
+                  const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+                  const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+                  return dateB - dateA;
+                });
+                setUserPosts(sortedPosts);
             }
           });
         }
@@ -104,28 +129,10 @@ export default function ProfilePage() {
       }
     };
 
-    if (authLoading) {
-      // Still waiting for auth state to resolve, do nothing yet.
-      // The skeleton will be shown because `loading` is true by default.
-      return;
-    }
-    
-    let userToFetch: string | null = usernameFromUrl;
-
-    if (usernameFromUrl === 'me') {
-      if (currentUser) {
-        userToFetch = currentUser.username;
-      } else {
-        // Not logged in, but trying to access /profile/me
-        router.replace('/login');
-        return;
-      }
-    }
-    
-    if (userToFetch) {
-      fetchUserProfile(userToFetch);
-    } else {
-      // If we still don't have a username to fetch, it's a genuine not found case.
+    if (userToFetchUsername) {
+      fetchUserProfile(userToFetchUsername);
+    } else if (!authLoading) {
+      // If there's no username to fetch and we are not waiting for auth, it's a genuine not found case or needs redirect.
       setLoading(false);
     }
 
@@ -134,7 +141,7 @@ export default function ProfilePage() {
       if (unsubProfile) unsubProfile();
       if (unsubPosts) unsubPosts();
     };
-  }, [usernameFromUrl, currentUser, authLoading, router, toast]);
+  }, [userToFetchUsername, toast, authLoading]);
 
   const handleFollow = async () => {
     if (!currentUser || !profileUser || currentUser.uid === profileUser.id) return;
