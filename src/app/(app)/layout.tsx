@@ -12,8 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function AppLoadingSkeleton() {
     return (
-        <div className="flex min-h-screen">
-             <div className="w-64 flex-shrink-0 border-r border-border/60 flex flex-col p-4 bg-card">
+        <div className="flex min-h-screen bg-background">
+             <div className="hidden md:flex w-64 flex-shrink-0 border-r border-border/60 flex-col p-4 bg-card">
                  <Skeleton className="h-8 w-3/4 mb-8" />
                  <div className="flex-1 space-y-2">
                     <Skeleton className="h-12 w-full" />
@@ -53,11 +53,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (typeof isMobile === "undefined") {
-    return <AppLoading-skeleton />;
+    return <AppLoadingSkeleton />;
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       {isMobile ? (
         <div className="flex flex-col w-full">
           <MobileHeader />
@@ -68,7 +68,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <>
           <AppSidebar />
           <main className="flex-1 max-w-2xl mx-auto py-8 px-4">{children}</main>
-          <div className="flex-1" />
+          <div className="hidden lg:block lg:flex-1" />
         </>
       )}
     </div>

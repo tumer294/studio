@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Edit } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
-import { mockUsers } from '@/lib/mock-data';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,32 +19,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from '@/hooks/use-auth';
-import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from 'date-fns';
 
 interface PostCardProps {
   post: Post;
   user: User;
 }
 
-function CommentSection({ comments: initialComments, currentUserAvatar, postId }: { comments: CommentType[], currentUserAvatar: string, postId: string }) {
-    const { user: currentUser } = useAuth();
+function CommentSection({ postId, currentUser }: { postId: string, currentUser: (User & import('firebase/auth').User) | null }) {
     const { toast } = useToast();
-    const [comments, setComments] = useState(initialComments);
+    const [comments, setComments] = useState<CommentType[]>([]);
     const [newComment, setNewComment] = useState("");
+
+    useEffect(() => {
+        const postRef = doc(db, 'posts', postId);
+        const unsubscribe = onSnapshot(postRef, (doc) => {
+            setComments(doc.data()?.comments || []);
+        });
+        return unsubscribe;
+    }, [postId]);
 
     const handleCommentSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if(!newComment.trim() || !currentUser) return;
 
         const newCommentObj: CommentType = {
-            id: `comment-${Date.now()}`,
-            user: {
-                username: currentUser.username || currentUser.email!.split('@')[0],
-                name: currentUser.name || currentUser.displayName!,
-                avatarUrl: currentUser.avatarUrl || currentUser.photoURL!,
-            },
+            id: `comment-${Date.now()}-${Math.random()}`,
+            userId: currentUser.uid,
+            username: currentUser.username,
+            name: currentUser.name,
+            avatarUrl: currentUser.avatarUrl,
             content: newComment,
             createdAt: new Date().toISOString()
         }
@@ -55,7 +61,6 @@ function CommentSection({ comments: initialComments, currentUserAvatar, postId }
             await updateDoc(postRef, {
                 comments: arrayUnion(newCommentObj)
             });
-            setComments(prev => [...prev, newCommentObj]); // Optimistically update UI
             setNewComment("");
         } catch (error) {
             console.error("Error adding comment: ", error);
@@ -63,26 +68,28 @@ function CommentSection({ comments: initialComments, currentUserAvatar, postId }
         }
     }
 
+    if (!currentUser) return null;
+
     return (
         <div className="space-y-4 pt-4 mt-4 border-t w-full">
             <form onSubmit={handleCommentSubmit} className="flex items-center gap-3 pt-2">
                 <Avatar className="w-8 h-8">
-                    <AvatarImage src={currentUserAvatar} alt="Current User" data-ai-hint="woman portrait" />
-                    <AvatarFallback>U</AvatarFallback>
+                    <AvatarImage src={currentUser.avatarUrl} alt="Current User" data-ai-hint="woman portrait" />
+                    <AvatarFallback>{currentUser.name?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
                 <Input placeholder="Write a comment..." className="h-9" value={newComment} onChange={e => setNewComment(e.target.value)} />
-                <Button size="sm" type="submit">Send</Button>
+                <Button size="sm" type="submit" disabled={!newComment.trim()}>Send</Button>
             </form>
-            {comments.map(comment => (
+            {comments.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(comment => (
                 <div key={comment.id} className="flex items-start gap-3">
                     <Avatar className="w-8 h-8">
-                        <AvatarImage src={comment.user.avatarUrl} alt={comment.user.name} data-ai-hint="person portrait"/>
-                        <AvatarFallback>{comment.user.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={comment.avatarUrl} alt={comment.name} data-ai-hint="person portrait"/>
+                        <AvatarFallback>{comment.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 bg-secondary/50 rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2">
-                            <p className="font-bold text-sm">{comment.user.name}</p>
-                            <Link href={`/profile/${comment.user.username}`} className="text-xs text-muted-foreground hover:underline">@{comment.user.username}</Link>
+                             <Link href={`/profile/${comment.username}`} className="font-bold text-sm hover:underline">{comment.name}</Link>
+                            <span className="text-xs text-muted-foreground">· {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</span>
                         </div>
                         <p className="text-sm">{comment.content}</p>
                     </div>
@@ -92,15 +99,30 @@ function CommentSection({ comments: initialComments, currentUserAvatar, postId }
     )
 }
 
-export default function PostCard({ post, user }: PostCardProps) {
+export default function PostCard({ post: initialPost, user }: PostCardProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const [post, setPost] = useState<Post>(initialPost);
   const [isCommentSectionOpen, setIsCommentSectionOpen] = useState(false);
 
-  const isLiked = currentUser ? post.likes.includes(currentUser.uid) : false;
+  // Listen for real-time updates on the post
+  useEffect(() => {
+      const postRef = doc(db, 'posts', initialPost.id);
+      const unsubscribe = onSnapshot(postRef, (doc) => {
+          if (doc.exists()) {
+              setPost({ id: doc.id, ...doc.data() } as Post);
+          }
+      });
+      return () => unsubscribe();
+  }, [initialPost.id]);
+
+  const isLiked = currentUser ? (post.likes || []).includes(currentUser.uid) : false;
   
   const handleLike = async () => {
-      if (!currentUser) return;
+      if (!currentUser) {
+           toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to like a post."})
+           return;
+      }
       const postRef = doc(db, 'posts', post.id);
       try {
           if (isLiked) {
@@ -134,7 +156,7 @@ export default function PostCard({ post, user }: PostCardProps) {
     }
   }
   
-  const postDate = post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString() : 'Just now';
+  const postDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'Just now';
 
 
   return (
@@ -187,10 +209,19 @@ export default function PostCard({ post, user }: PostCardProps) {
             />
           </div>
         )}
+         {post.type === 'video' && post.mediaUrl && (
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border">
+                <video
+                    src={post.mediaUrl}
+                    controls
+                    className="w-full h-full"
+                ></video>
+            </div>
+        )}
         {post.type === 'link' && post.mediaUrl && (
             <div className="mt-3 aspect-video rounded-lg overflow-hidden border">
                 <iframe
-                    src={post.mediaUrl}
+                    src={post.mediaUrl.startsWith('http') ? `https://www.youtube.com/embed/${post.mediaUrl.split('v=')[1]}` : post.mediaUrl}
                     title="Embedded content"
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -202,20 +233,20 @@ export default function PostCard({ post, user }: PostCardProps) {
       </CardContent>
       <CardFooter className="flex flex-col items-start p-4">
         <div className="w-full flex justify-around">
-           <Button variant="ghost" className={cn("flex items-center gap-2 text-muted-foreground transition-colors", isLiked ? 'text-destructive' : 'hover:text-destructive')} onClick={handleLike}>
+           <Button variant="ghost" className={cn("flex items-center gap-2 text-muted-foreground transition-colors", isLiked ? 'text-destructive' : 'hover:text-destructive')} onClick={handleLike} disabled={!currentUser}>
             <Heart className={cn("w-5 h-5", isLiked && 'fill-current')} />
-            <span>{post.likes.length}</span>
+            <span>{(post.likes || []).length}</span>
           </Button>
-          <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-primary" onClick={() => setIsCommentSectionOpen(!isCommentSectionOpen)}>
+          <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-primary" onClick={() => setIsCommentSectionOpen(!isCommentSectionOpen)} disabled={!currentUser}>
             <MessageCircle className="w-5 h-5" />
-            <span>{post.comments.length}</span>
+            <span>{(post.comments || []).length}</span>
           </Button>
           <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-primary">
             <Share2 className="w-5 h-5" />
             <span>Share</span>
           </Button>
         </div>
-        {isCommentSectionOpen && <CommentSection comments={post.comments} currentUserAvatar={currentUser!.avatarUrl || currentUser!.photoURL!} postId={post.id} />}
+        {isCommentSectionOpen && <CommentSection postId={post.id} currentUser={currentUser} />}
       </CardFooter>
     </Card>
   );

@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import Image from "next/image";
-import { notFound, useParams } from "next/navigation";
+import { notFound, useParams, useRouter } from "next/navigation";
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy } from 'firebase/firestore';
 import type { User, Post } from '@/lib/types';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,11 +15,44 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PostCard from "@/components/post-card";
 import { UserPlus, Mail, Camera, UserCheck } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function ProfileSkeleton() {
+    return (
+        <div className="p-4 md:p-0 space-y-6">
+            <Card className="overflow-hidden">
+                <Skeleton className="h-32 md:h-48 w-full" />
+                <div className="p-4 relative">
+                    <div className="absolute -top-16 left-6">
+                        <Skeleton className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-card" />
+                    </div>
+                    <div className="flex justify-end items-center mb-4 h-10">
+                        <Skeleton className="h-10 w-24" />
+                        <Skeleton className="h-10 w-24 ml-2" />
+                    </div>
+                    <div className="pt-8 md:pt-12 space-y-2">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-full mt-2" />
+                         <Skeleton className="h-4 w-3/4" />
+                    </div>
+                    <div className="flex gap-6 mt-4">
+                        <Skeleton className="h-5 w-24" />
+                        <Skeleton className="h-5 w-24" />
+                    </div>
+                </div>
+            </Card>
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-40 w-full" />
+        </div>
+    )
+}
 
 
 export default function ProfilePage() {
   const { user: currentUser, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const params = useParams();
   const username = Array.isArray(params.username) ? params.username[0] : params.username;
 
@@ -27,51 +60,73 @@ export default function ProfilePage() {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isFollowing = currentUser && profileUser ? profileUser.followers.includes(currentUser.uid) : false;
+  const isFollowing = currentUser && profileUser ? (profileUser.followers || []).includes(currentUser.uid) : false;
 
   useEffect(() => {
+    if (authLoading) return;
+
     const fetchUserProfile = async () => {
-        if (!username) return;
-        setLoading(true);
-        
-        let userToFetch = username;
-        if (username === 'me' && currentUser) {
-            userToFetch = currentUser.username;
+      let userToFetch = username;
+      if (username === 'me') {
+        if (currentUser) {
+          // Redirect to the actual username URL
+          router.replace(`/profile/${currentUser.username}`);
+          return; // Stop execution here
+        } else {
+          // Not logged in, can't view 'me'
+          router.push('/login');
+          return;
         }
+      }
+      setLoading(true);
 
-        try {
-            const usersRef = collection(db, "users");
-            const q = query(usersRef, where("username", "==", userToFetch));
-            const querySnapshot = await getDocs(q);
+      try {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("username", "==", userToFetch));
+        const querySnapshot = await getDocs(q);
 
-            if (querySnapshot.empty) {
-                setProfileUser(null);
-            } else {
-                const userDoc = querySnapshot.docs[0];
-                const userData = { id: userDoc.id, ...userDoc.data() } as User;
-                setProfileUser(userData);
+        if (querySnapshot.empty) {
+          setProfileUser(null);
+        } else {
+          const userDoc = querySnapshot.docs[0];
+          
+          // Use onSnapshot for real-time updates on the profile user
+          const unsubProfile = onSnapshot(userDoc.ref, (doc) => {
+            setProfileUser({ id: doc.id, ...doc.data() } as User);
+          });
 
-                // Fetch posts for this user
-                const postsRef = collection(db, "posts");
-                const postsQuery = query(postsRef, where("userId", "==", userData.id), where("type", "in", ["text", "image", "link"]));
-                const postsSnapshot = await getDocs(postsQuery);
-                const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                setUserPosts(postsData);
-            }
-        } catch (error) {
-            console.error("Error fetching profile:", error);
-            setProfileUser(null);
-        } finally {
-            setLoading(false);
+          // Fetch posts for this user
+          const postsRef = collection(db, "posts");
+          const postsQuery = query(postsRef, where("userId", "==", userDoc.id), orderBy("createdAt", "desc"));
+          
+          const unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
+            const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+            setUserPosts(postsData);
+          });
+          
+          return () => { // Cleanup snapshots
+              unsubProfile();
+              unsubPosts();
+          }
         }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
+        setProfileUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    const cleanup = fetchUserProfile();
     
-    // We need auth to finish loading before we can potentially fetch 'me'
-    if (!authLoading) {
-       fetchUserProfile();
+    return () => {
+        if(typeof cleanup === 'function') {
+            cleanup();
+        }
     }
 
-  }, [username, currentUser, authLoading]);
+  }, [username, currentUser, authLoading, router, toast]);
 
   const handleFollow = async () => {
     if (!currentUser || !profileUser || currentUser.uid === profileUser.id) return;
@@ -84,13 +139,11 @@ export default function ProfilePage() {
             // Unfollow
             await updateDoc(currentUserRef, { following: arrayRemove(profileUser.id) });
             await updateDoc(profileUserRef, { followers: arrayRemove(currentUser.uid) });
-            setProfileUser(prev => prev ? ({ ...prev, followers: prev.followers.filter(id => id !== currentUser.uid)}) : null);
-             toast({ title: 'Unfollowed', description: `You are no longer following ${profileUser.name}.` });
+            toast({ title: 'Unfollowed', description: `You are no longer following ${profileUser.name}.` });
         } else {
             // Follow
             await updateDoc(currentUserRef, { following: arrayUnion(profileUser.id) });
             await updateDoc(profileUserRef, { followers: arrayUnion(currentUser.uid) });
-            setProfileUser(prev => prev ? ({ ...prev, followers: [...prev.followers, currentUser.uid]}) : null);
             toast({ title: 'Followed', description: `You are now following ${profileUser.name}.` });
         }
     } catch(error) {
@@ -101,7 +154,7 @@ export default function ProfilePage() {
 
 
   if (loading || authLoading) {
-      return <div>Loading profile...</div>;
+      return <ProfileSkeleton />;
   }
   
   if (!profileUser) {
@@ -114,6 +167,7 @@ export default function ProfilePage() {
     <div className="p-4 md:p-0">
         <Card className="overflow-hidden">
             <div className="h-32 md:h-48 bg-gradient-to-r from-primary/20 to-accent/20 relative">
+                <Image src={profileUser.coverPhotoUrl || 'https://placehold.co/1500x500'} alt="Cover photo" layout="fill" objectFit="cover" />
                 {isOwnProfile && <Button size="sm" variant="outline" className="absolute bottom-2 right-2 bg-background/50 backdrop-blur-sm">
                     <Camera className="mr-2 h-4 w-4" /> Cover Photo
                 </Button>}
@@ -132,7 +186,7 @@ export default function ProfilePage() {
                 <div className="flex justify-end items-center mb-4">
                    {!isOwnProfile && currentUser && (
                      <div className="flex gap-2">
-                       <Button onClick={handleFollow}>
+                       <Button onClick={handleFollow} disabled={!currentUser}>
                           {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
                           {isFollowing ? 'Following' : 'Follow'}
                        </Button>
@@ -151,11 +205,11 @@ export default function ProfilePage() {
 
                 <div className="flex gap-6 mt-4 text-sm">
                     <div>
-                        <span className="font-bold">{profileUser.following.length}</span>
+                        <span className="font-bold">{(profileUser.following || []).length}</span>
                         <span className="text-muted-foreground"> Following</span>
                     </div>
                     <div>
-                        <span className="font-bold">{profileUser.followers.length}</span>
+                        <span className="font-bold">{(profileUser.followers || []).length}</span>
                         <span className="text-muted-foreground"> Followers</span>
                     </div>
                 </div>

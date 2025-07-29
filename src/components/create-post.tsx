@@ -2,18 +2,20 @@
 "use client";
 
 import { useState } from 'react';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { Post } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { TextIcon, ImageIcon, Link2Icon, Film } from "lucide-react";
-import { useAuth } from '@/hooks/use-auth';
+import { TextIcon, ImageIcon, Link2Icon, Film, Loader2 } from "lucide-react";
+import { storage } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreatePostProps {
-  onCreatePost: (post: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'>) => void;
-  user: any; // Allow flexible user prop for now
+  onCreatePost: (post: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'>) => Promise<void>;
+  user: any; 
 }
 
 export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
@@ -21,33 +23,58 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const [postContent, setPostContent] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
-      setFile(event.target.files[0]);
+      const selectedFile = event.target.files[0];
+       if (selectedFile.size > 5 * 1024 * 1024 && (activeTab === 'image' || activeTab === 'video')) {
+            toast({
+                variant: 'destructive',
+                title: 'File Too Large',
+                description: 'Please select a file smaller than 5MB.',
+            });
+            event.target.value = ''; // Reset file input
+            return;
+        }
+      setFile(selectedFile);
     }
   };
 
-  const handlePost = () => {
-    if (!postContent.trim() && !file && !mediaUrl.trim()) return;
-
-    // In a real app, you would upload the file to a service like Firebase Storage
-    // and get back a URL. For this mock, we'll use a local object URL.
-    const fileUrl = file ? URL.createObjectURL(file) : mediaUrl;
-
-    const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
-        content: postContent,
-        type: activeTab,
-        mediaUrl: fileUrl,
-    };
-
-    onCreatePost(newPost);
+  const handlePost = async () => {
+    if ((!postContent.trim() && !file && !mediaUrl.trim()) || isUploading) return;
     
-    // Reset state after posting
-    setPostContent("");
-    setMediaUrl("");
-    setFile(null);
-    setActiveTab("text");
+    setIsUploading(true);
+    let finalMediaUrl = mediaUrl;
+
+    try {
+        if (file) {
+            const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            finalMediaUrl = await getDownloadURL(snapshot.ref);
+        }
+
+        const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
+            content: postContent,
+            type: activeTab,
+            mediaUrl: finalMediaUrl,
+        };
+
+        await onCreatePost(newPost);
+        
+        // Reset state after posting
+        setPostContent("");
+        setMediaUrl("");
+        setFile(null);
+        // We can leave the active tab as is, or reset it. Resetting is cleaner.
+        setActiveTab("text");
+    } catch(error) {
+        console.error("Error during post creation:", error);
+        toast({variant: 'destructive', title: 'Upload Error', description: 'Could not upload the media file.'})
+    } finally {
+        setIsUploading(false);
+    }
   };
   
   const TABS = [
@@ -57,7 +84,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
       { id: 'link', icon: Link2Icon, label: 'Link' },
   ] as const;
 
-  const isPostButtonDisabled = postContent.trim() === "" && !file && mediaUrl.trim() === "";
+  const isPostButtonDisabled = (postContent.trim() === "" && !file && mediaUrl.trim() === "") || isUploading;
 
 
   return (
@@ -95,13 +122,16 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
             <div className="flex justify-between items-center mt-2">
                 <div className="flex gap-1">
                     {TABS.map(tab => (
-                        <Button key={tab.id} variant={activeTab === tab.id ? "secondary" : "ghost"} size="icon" onClick={() => setActiveTab(tab.id)} aria-label={tab.label}>
+                        <Button key={tab.id} variant={activeTab === tab.id ? "secondary" : "ghost"} size="icon" onClick={() => setActiveTab(tab.id)} aria-label={tab.label} disabled={isUploading}>
                             <tab.icon className="w-5 h-5"/>
                         </Button>
                     ))}
                 </div>
                <div className="flex items-center gap-2">
-                <Button onClick={handlePost} disabled={isPostButtonDisabled}>Post</Button>
+                <Button onClick={handlePost} disabled={isPostButtonDisabled}>
+                  {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isUploading ? 'Posting...' : 'Post'}
+                </Button>
               </div>
             </div>
           </div>

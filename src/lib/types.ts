@@ -2,9 +2,12 @@
 
 export interface User {
   id: string; // This will be the Firebase UID
+  uid: string; // This will be the Firebase UID
   name: string;
   username: string;
+  email: string;
   avatarUrl: string;
+  coverPhotoUrl?: string;
   bio?: string;
   followers: string[]; // Array of user IDs
   following: string[]; // Array of user IDs
@@ -17,9 +20,12 @@ export type PostType = 'text' | 'image' | 'video' | 'link';
 
 export interface Comment {
   id: string;
-  user: Pick<User, 'username' | 'avatarUrl' | 'name'>;
+  userId: string;
+  username: string;
+  name: string;
+  avatarUrl: string;
   content: string;
-  createdAt: string; // Should be a timestamp or parsable date string
+  createdAt: string; // Should be an ISO date string
 }
 
 export interface Post {
