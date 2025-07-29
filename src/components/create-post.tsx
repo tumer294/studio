@@ -32,13 +32,13 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     if (event.target.files && event.target.files[0]) {
       const selectedFile = event.target.files[0];
       
-      // Only handle image files for direct upload
-      if (!selectedFile.type.startsWith('image/')) {
-          toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image file.' });
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (activeTab === 'image' && !allowedImageTypes.includes(selectedFile.type)) {
+          toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image file (jpg, png, gif, webp).' });
           return;
       }
       if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
-          toast({ variant: 'destructive', title: 'File Too Large', description: 'Image must be smaller than 5MB.' });
+          toast({ variant: 'destructive', title: 'File Too Large', description: 'File must be smaller than 5MB.' });
           return;
       }
       
@@ -66,12 +66,25 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
         let finalMediaUrl = mediaUrl;
         let postType: Post['type'] = activeTab;
 
+        // The core logic fix: Upload the file to Storage and get a URL.
         if (file && activeTab === 'image') {
             postType = 'image';
+            // 1. Create a reference in Firebase Storage
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
+            
+            // 2. Upload the file
             const snapshot = await uploadBytes(storageRef, file);
+            
+            // 3. Get the public download URL
             finalMediaUrl = await getDownloadURL(snapshot.ref);
+        } else if (activeTab === 'video') {
+            postType = 'video';
+        } else if (activeTab === 'link') {
+            postType = 'link';
+        } else {
+            postType = 'text';
         }
+
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
             content: postContent,
@@ -100,8 +113,13 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   ] as const;
   
   const handleTabClick = (tabId: "text" | "image" | "video" | "link") => {
+      // Reset state when switching tabs to avoid confusion
+      setPostContent(""); // Clear text content as well
       setFile(null);
       setMediaUrl("");
+      if(fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       setActiveTab(tabId);
   }
 
@@ -126,7 +144,9 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
             
             {(activeTab === 'image') && (
               <div className="mt-2">
+                 <Label htmlFor="image-upload" className="text-sm font-medium text-muted-foreground">Select an image to upload</Label>
                 <Input 
+                  id="image-upload"
                   type="file" 
                   accept="image/*"
                   onChange={handleFileChange}
