@@ -179,7 +179,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   const renderMedia = () => {
     if (!post.mediaUrl) return null;
 
-    // Handle direct image uploads
     if (post.type === 'image') {
       return (
         <div className="mt-3 rounded-lg overflow-hidden border">
@@ -195,7 +194,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       );
     }
     
-    // Handle direct video uploads
     if (post.type === 'video') {
          return (
           <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
@@ -208,11 +206,10 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         );
     }
 
-    // Handle link embeds
     if (post.type === 'link') {
         const isYoutube = post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be');
-        const isImage = /\.(jpeg|jpg|gif|png)$/.test(post.mediaUrl);
-        const isVideo = /\.(mp4|webm)$/.test(post.mediaUrl);
+        const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(post.mediaUrl);
+        const isVideo = /\.(mp4|webm|mov)$/i.test(post.mediaUrl);
 
         if (isYoutube) {
             const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
@@ -246,12 +243,11 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
             );
         }
 
-        // Fallback for general links
         return (
              <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
                  <div className="p-3">
                     <p className="font-bold truncate">{post.content || post.mediaUrl}</p>
-                    <p className="text-sm text-muted-foreground truncate">Click to view link: {post.mediaUrl}</p>
+                    <p className="text-sm text-muted-foreground truncate">{post.mediaUrl}</p>
                 </div>
              </a>
         );
@@ -321,3 +317,5 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     </Card>
   );
 }
+
+    
