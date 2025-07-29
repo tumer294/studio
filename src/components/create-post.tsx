@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { Post } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,30 +26,24 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const selectedFile = event.target.files[0];
-       const fileType = activeTab;
-       if (fileType === 'image' && selectedFile.size > 5 * 1024 * 1024) {
-            toast({
-                variant: 'destructive',
-                title: 'File Too Large',
-                description: 'Please select an image smaller than 5MB.',
-            });
-            event.target.value = ''; 
+      const fileType = selectedFile.type;
+
+      if (activeTab === 'image') {
+        if (!fileType.startsWith('image/')) {
+            toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image file.' });
             return;
         }
-       if (fileType === 'video' && selectedFile.size > 50 * 1024 * 1024) { // 50MB limit for video
-            toast({
-                variant: 'destructive',
-                title: 'File Too Large',
-                description: 'Please select a video smaller than 50MB.',
-            });
-            event.target.value = '';
+        if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
+            toast({ variant: 'destructive', title: 'File Too Large', description: 'Image must be smaller than 5MB.' });
             return;
         }
+      }
+      
       setFile(selectedFile);
     }
   };
@@ -75,25 +69,11 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
         let postType: Post['type'] = activeTab;
 
         if (file) {
-            // Determine post type from the file's MIME type
-            if (file.type.startsWith('image/')) {
-                postType = 'image';
-            } else if (file.type.startsWith('video/')) {
-                postType = 'video';
-            } else {
-                 toast({variant: 'destructive', title: 'Unsupported File', description: 'Please upload a valid image or video file.'});
-                 setIsUploading(false);
-                 return;
-            }
-
+            postType = 'image'; // Only image tab allows file upload for now
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
-        } else {
-             // For link/video tabs without file upload, the type is set by the active tab
-            postType = activeTab;
         }
-
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
             content: postContent,
@@ -106,9 +86,9 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
         toast({ title: 'Success', description: 'Your post has been published.' });
         resetState();
 
-    } catch(error) {
+    } catch(error: any) {
         console.error("Error during post creation:", error);
-        toast({variant: 'destructive', title: 'Upload Error', description: 'Could not create the post.'})
+        toast({variant: 'destructive', title: 'Upload Error', description: error.message || 'Could not create the post.'})
     } finally {
         setIsUploading(false);
     }
@@ -121,7 +101,6 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
       { id: 'link', icon: Link2Icon, label: 'Link' },
   ] as const;
   
-  // Clear file when switching tabs to avoid confusion
   const handleTabClick = (tabId: "text" | "image" | "video" | "link") => {
       setFile(null);
       setMediaUrl("");
@@ -158,9 +137,9 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
                 />
               </div>
             )}
-            {(activeTab === 'video' && !file) && ( // Show URL input only if a file isn't selected
+            {(activeTab === 'video') && (
                <div className="mt-2">
-                 <Input type="url" placeholder="Enter video link to embed (e.g., YouTube)" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
+                 <Input type="url" placeholder="Enter video URL (e.g., YouTube, .mp4)" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
               </div>
             )}
             {(activeTab === 'link') && (

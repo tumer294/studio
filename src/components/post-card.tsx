@@ -181,6 +181,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       return null;
     }
     
+    // Type: Direct Image Upload
     if (post.type === 'image') {
         return (
             <div className="mt-3 rounded-lg overflow-hidden border">
@@ -196,9 +197,13 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         );
     }
     
+    const isYoutube = (url: string) => url.includes('youtube.com') || url.includes('youtu.be');
+    const isImageLink = (url: string) => /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
+    const isVideoLink = (url: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+
+    // Type: Video Link or Direct Video Upload
     if (post.type === 'video') {
-         const isYoutube = post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be');
-         if (isYoutube) {
+         if (isYoutube(post.mediaUrl)) {
             const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
             return (
                 <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
@@ -221,12 +226,9 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
           );
     }
 
+    // Type: Generic Link (could be an image, video, or website)
     if (post.type === 'link') {
-        const isImageLink = /\.(jpeg|jpg|gif|png|webp)$/i.test(post.mediaUrl);
-        const isVideoLink = /\.(mp4|webm|mov)$/i.test(post.mediaUrl);
-        const isYoutube = post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be');
-
-        if (isYoutube) {
+        if (isYoutube(post.mediaUrl)) {
              const videoId = post.mediaUrl.split('v=')[1]?.split('&')[0] || post.mediaUrl.split('/').pop();
               return (
                 <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
@@ -242,7 +244,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
               );
         }
 
-        if (isImageLink) {
+        if (isImageLink(post.mediaUrl)) {
              return (
                 <div className="mt-3 rounded-lg overflow-hidden border">
                   <Image
@@ -256,7 +258,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
               );
         }
         
-        if(isVideoLink) {
+        if(isVideoLink(post.mediaUrl)) {
              return (
                 <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
                   <video src={post.mediaUrl} controls className="w-full h-full"></video>
