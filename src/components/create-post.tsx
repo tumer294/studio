@@ -51,7 +51,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
     
     try {
         let uploadedMediaUrl = "";
-        let postType = activeTab;
+        let postType: Post['type'] = activeTab;
 
         if (file) {
             if (file.type.startsWith('image/')) {
