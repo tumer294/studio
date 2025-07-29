@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Compass, Bell, User, LogOut, PenSquare, Settings, Moon, Sun, Languages, Palette } from "lucide-react";
+import { Home, Compass, Bell, User, LogOut, PenSquare, Settings, Languages, Palette } from "lucide-react";
 import { UmmahConnectLogo } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -115,19 +115,6 @@ export default function AppSidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end">
                 <DropdownMenuLabel>{t.appearance}</DropdownMenuLabel>
-                <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                        <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                        <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                        <span className="ml-2">{t.toggleTheme}</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={() => document.documentElement.classList.remove('dark')}>Light</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => document.documentElement.classList.add('dark')}>Dark</DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                </DropdownMenuSub>
                  <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                         <Palette className="mr-2 h-4 w-4" />
@@ -157,6 +144,11 @@ export default function AppSidebar() {
                         </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                 </DropdownMenuSub>
+                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>{t.logout}</span>
+                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
 
@@ -170,10 +162,6 @@ export default function AppSidebar() {
                 <p className="text-sm text-muted-foreground">@{user.username || user.email?.split('@')[0]}</p>
             </div>
         </div>
-        <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive" onClick={handleLogout}>
-          <LogOut className="w-5 h-5" />
-          <span>{t.logout}</span>
-        </Button>
       </div>
     </aside>
   );

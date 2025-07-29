@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { UmmahConnectLogo } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Settings, Moon, Sun, Palette, Languages } from "lucide-react";
+import { Settings, Palette, Languages, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTranslation } from "@/hooks/use-translation";
 import { languages as appLanguages } from "@/app-strings";
+import { useAuth } from "@/hooks/use-auth";
+import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+
 
 const themes = [
     { name: "Islamic Green", class: "theme-default" },
@@ -30,6 +35,19 @@ const themes = [
 
 export default function MobileHeader() {
   const { setLanguage, t } = useTranslation();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      router.push('/login');
+    } catch (error) {
+      console.error("Logout Error:", error);
+      toast({ variant: 'destructive', title: "Error", description: "Failed to log out." });
+    }
+  }
 
   const handleThemeChange = (themeClass: string) => {
     document.documentElement.classList.remove(...themes.map(t => t.class));
@@ -59,19 +77,6 @@ export default function MobileHeader() {
           <DropdownMenuLabel>{t.appearance}</DropdownMenuLabel>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="ml-2">{t.toggleTheme}</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => document.documentElement.classList.remove('dark')}>Light</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => document.documentElement.classList.add('dark')}>Dark</DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
               <Palette className="mr-2 h-4 w-4" />
               <span>{t.colorTheme}</span>
             </DropdownMenuSubTrigger>
@@ -99,6 +104,11 @@ export default function MobileHeader() {
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>
+           <DropdownMenuSeparator />
+           <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>{t.logout}</span>
+            </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
