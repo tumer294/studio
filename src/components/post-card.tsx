@@ -180,13 +180,36 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     if (!post.mediaUrl) {
       return null;
     }
+    const url = post.mediaUrl;
+    
+    // Check for YouTube URLs first
+    const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+    if (isYoutube) {
+        const videoIdMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
+        const videoId = videoIdMatch ? videoIdMatch[1] : null;
+        if (!videoId) return null;
+        return (
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+            </div>
+        );
+    }
 
-    if (post.type === 'image') {
+    // Check for direct image file extensions
+    const isImageLink = /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
+    if (isImageLink || post.type === 'image') {
         return (
             <div className="mt-3 rounded-lg overflow-hidden border">
                 <Image
-                    src={post.mediaUrl}
-                    alt="Post image"
+                    src={url}
+                    alt="Post content"
                     width={600}
                     height={400}
                     className="w-full h-auto object-cover"
@@ -195,63 +218,37 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
             </div>
         );
     }
-    
-    // Logic for 'video' and 'link' types which use URLs
-    if (post.type === 'video' || post.type === 'link') {
-        const url = post.mediaUrl;
-        const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
-        const isImageLink = /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
-        const isVideoLink = /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
 
-        if (isYoutube) {
-            const videoIdMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
-            const videoId = videoIdMatch ? videoIdMatch[1] : null;
-            if (!videoId) return null;
-            return (
-                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                    <iframe
-                        className="w-full h-full"
-                        src={`https://www.youtube.com/embed/${videoId}`}
-                        title="YouTube video player"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                    ></iframe>
-                </div>
-            );
-        }
-
-        if (isImageLink) {
-            return (
-                <div className="mt-3 rounded-lg overflow-hidden border">
-                    <Image
-                        src={url}
-                        alt="Post image from link"
-                        width={600}
-                        height={400}
-                        className="w-full h-auto object-cover"
-                    />
-                </div>
-            );
-        }
-
-        if (isVideoLink) {
-            return (
-                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                    <video src={url} controls className="w-full h-full"></video>
-                </div>
-            );
-        }
-        
-        // Fallback for any other link type
+    // Check for direct video file extensions
+    const isVideoLink = /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+    if (isVideoLink || post.type === 'video') {
         return (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
-              <div className="p-3">
-                <p className="font-bold truncate">{post.content || url}</p>
-                <p className="text-sm text-muted-foreground truncate">{url}</p>
-              </div>
-            </a>
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                <video src={url} controls className="w-full h-full"></video>
+            </div>
         );
+    }
+    
+    // Fallback for any other link type (e.g. general web page)
+    if (post.type === 'link') {
+        try {
+            // Try to render in an iframe
+            return (
+                <div className="mt-3 aspect-video rounded-lg overflow-hidden border">
+                     <iframe src={url} className="w-full h-full" title={post.content || 'Embedded Content'}></iframe>
+                </div>
+            )
+        } catch(e) {
+             // If iframe fails, show a simple link card
+            return (
+                <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted">
+                  <div className="p-3">
+                    <p className="font-bold truncate">{post.content || url}</p>
+                    <p className="text-sm text-muted-foreground truncate">{url}</p>
+                  </div>
+                </a>
+            );
+        }
     }
 
     return null;
