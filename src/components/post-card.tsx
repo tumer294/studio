@@ -264,6 +264,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     }
     const url = post.mediaUrl;
     
+    // For images uploaded directly
     if (post.type === 'image') {
       return (
         <div className="mt-3 rounded-lg overflow-hidden border">
@@ -279,67 +280,81 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       );
     }
     
+    // For videos uploaded directly
     if (post.type === 'video') {
-      const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
-      if (isYoutube) {
-        const videoIdMatch = url.match(/(?:v=|\/|embed\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
-        const videoId = videoIdMatch ? videoIdMatch[1] : null;
-        if (videoId) {
-          return (
+        return (
             <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-              <iframe
-                className="w-full h-full"
-                src={`https://www.youtube.com/embed/${videoId}`}
-                title="YouTube video player"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
+                <video src={url} controls className="w-full h-full"></video>
             </div>
-          );
-        }
-      }
-      
-      const isDirectVideo = /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
-      if (isDirectVideo) {
-          return (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-              <video src={url} controls className="w-full h-full"></video>
-            </div>
-          );
-      }
-      
-      // Fallback for other video links
-      return (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 group relative block aspect-video w-full rounded-lg overflow-hidden border bg-black">
-              <Image src="https://placehold.co/600x400/000000/FFFFFF.png?text=Video" alt="Video placeholder" fill={true} style={{objectFit: 'cover'}} className="opacity-50" />
-               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
-                  <PlayCircle className="w-16 h-16 text-white/80 group-hover:scale-110 transition-transform" />
-                  <p className="mt-2 font-semibold text-white">Watch Video</p>
-               </div>
-          </a>
-      );
+        );
     }
 
+    // For shared links, check if image or video
     if(post.type === 'link') {
-      let hostname = 'link';
-      try {
-          hostname = new URL(url).hostname.replace('www.', '');
-      } catch (e) { /* ignore invalid urls */ }
-      
-      return (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted/50 transition-colors">
-            <div className="p-4 bg-muted/20">
-              <div className="flex items-center gap-3">
-                  <LinkIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                  <div className="flex-1 overflow-hidden">
-                      <p className="font-semibold truncate">{hostname}</p>
-                      <p className="text-sm text-muted-foreground truncate">{url}</p>
-                  </div>
-              </div>
-            </div>
-          </a>
-      );
+        // Check for image extensions
+        if (/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url)) {
+            return (
+                <div className="mt-3 rounded-lg overflow-hidden border">
+                    <Image
+                        src={url}
+                        alt="Post content"
+                        width={600}
+                        height={400}
+                        className="w-full h-auto object-cover"
+                    />
+                </div>
+            );
+        }
+
+        // Check for video URLs (YouTube or direct video files)
+        const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+        if (isYoutube) {
+            const videoIdMatch = url.match(/(?:v=|\/|embed\/|watch\?v=|\&v=)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
+            const videoId = videoIdMatch ? videoIdMatch[1] : null;
+            if (videoId) {
+                return (
+                    <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                        <iframe
+                            className="w-full h-full"
+                            src={`https://www.youtube.com/embed/${videoId}`}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                        ></iframe>
+                    </div>
+                );
+            }
+        }
+        
+        const isDirectVideo = /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+        if (isDirectVideo) {
+            return (
+                <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                    <video src={url} controls className="w-full h-full"></video>
+                </div>
+            );
+        }
+
+        // Fallback for other links
+        let hostname = 'link';
+        try {
+            hostname = new URL(url).hostname.replace('www.', '');
+        } catch (e) { /* ignore invalid urls */ }
+        
+        return (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg overflow-hidden border hover:bg-muted/50 transition-colors">
+                <div className="p-4 bg-muted/20">
+                <div className="flex items-center gap-3">
+                    <LinkIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 overflow-hidden">
+                        <p className="font-semibold truncate">{hostname}</p>
+                        <p className="text-sm text-muted-foreground truncate">{url}</p>
+                    </div>
+                </div>
+                </div>
+            </a>
+        );
     }
 
     return null;
