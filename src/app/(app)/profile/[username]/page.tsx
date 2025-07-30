@@ -134,7 +134,7 @@ export default function ProfilePage() {
     }
 
     const postsRef = collection(db, 'posts');
-    const postsQuery = query(postsRef, where('userId', '==', profileUser.uid));
+    const postsQuery = query(postsRef, where('userId', '==', profileUser.uid), orderBy('createdAt', 'desc'));
 
     const unsubPosts = onSnapshot(
       postsQuery,
@@ -143,17 +143,9 @@ export default function ProfilePage() {
           (doc) => ({ id: doc.id, ...doc.data() }) as Post
         );
 
-        // Client-side filtering
         if (currentUser?.role !== 'admin' && currentUser?.uid !== profileUser.uid) {
           postsData = postsData.filter((p) => p.status !== 'banned');
         }
-        
-        // Client-side sorting
-        postsData.sort((a, b) => {
-          const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-          const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-          return dateB - dateA;
-        });
 
         setUserPosts(postsData);
         setLoading(false);
@@ -283,10 +275,8 @@ export default function ProfilePage() {
       
       await updateDoc(userDocRef, updateData);
       
-      setProfileUser((prevUser) => {
-          if (!prevUser) return null;
-          return { ...prevUser, ...updateData };
-      });
+      // Use callback form to ensure we're updating the latest state
+      setProfileUser((prevUser) => prevUser ? { ...prevUser, ...updateData } : null);
       
       toast({ title: 'Success', description: `Your new ${type === 'avatar' ? 'avatar' : 'cover photo'} has been saved.` });
 

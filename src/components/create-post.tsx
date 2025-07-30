@@ -73,7 +73,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
         } else if (mediaUrl.trim()) {
-            finalMediaUrl = mediaUrl;
+            finalMediaUrl = mediaUrl; // This was missing
             if (activeTab === 'video') postType = 'video';
             if (activeTab === 'link') postType = 'link';
         } else {

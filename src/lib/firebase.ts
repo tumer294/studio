@@ -19,6 +19,7 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app, firebaseConfig.storageBucket);
+// Explicitly pass the storage bucket URL to ensure correct initialization.
+const storage = getStorage(app, "gs://ummahconnect-po02n.appspot.com");
 
 export { app, auth, db, storage };

@@ -277,6 +277,26 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     }
     
     if (post.type === 'video') {
+      const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+      if (isYoutube) {
+        const videoIdMatch = url.match(/(?:v=|\/|embed\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
+        const videoId = videoIdMatch ? videoIdMatch[1] : null;
+        if (videoId) {
+          return (
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+              <iframe
+                className="w-full h-full"
+                src={`https://www.youtube.com/embed/${videoId}`}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          );
+        }
+      }
+      
       const isDirectVideo = /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
       if (isDirectVideo) {
           return (
@@ -285,29 +305,11 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
             </div>
           );
       }
-
-      const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
-      if (isYoutube) {
-        const videoIdMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
-        const videoId = videoIdMatch ? videoIdMatch[1] : null;
-        if (!videoId) return null;
-        return (
-          <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-            <iframe
-              className="w-full h-full"
-              src={`https://www.youtube.com/embed/${videoId}`}
-              title="YouTube video player"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          </div>
-        );
-      }
       
+      // Fallback for other video links
       return (
           <a href={url} target="_blank" rel="noopener noreferrer" className="mt-3 group relative block aspect-video w-full rounded-lg overflow-hidden border bg-black">
-              <Image src="https://placehold.co/600x400/000000/FFFFFF.png?text=Video" alt="Video placeholder" layout="fill" objectFit="cover" className="opacity-50" />
+              <Image src="https://placehold.co/600x400/000000/FFFFFF.png?text=Video" alt="Video placeholder" fill={true} style={{objectFit: 'cover'}} className="opacity-50" />
                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
                   <PlayCircle className="w-16 h-16 text-white/80 group-hover:scale-110 transition-transform" />
                   <p className="mt-2 font-semibold text-white">Watch Video</p>
