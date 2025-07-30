@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { UmmahConnectLogo } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Settings, Palette, Languages, LogOut } from "lucide-react";
+import { Settings, Palette, Languages, LogOut, Shield } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,7 @@ import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/hooks/use-theme-provider";
+import { useAuth } from "@/hooks/use-auth";
 
 
 const themes = [
@@ -38,6 +39,7 @@ export default function MobileHeader() {
   const { toast } = useToast();
   const router = useRouter();
   const { setTheme } = useTheme();
+  const { isAdmin } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -64,6 +66,15 @@ export default function MobileHeader() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+           {isAdmin && (
+            <>
+              <DropdownMenuItem onClick={() => router.push('/admin')}>
+                <Shield className="mr-2 h-4 w-4" />
+                <span>Admin Panel</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuLabel>{t.appearance}</DropdownMenuLabel>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>

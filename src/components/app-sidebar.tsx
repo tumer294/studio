@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Compass, Bell, User, LogOut, PenSquare, Settings, Languages, Palette } from "lucide-react";
+import { Home, Compass, Bell, User, LogOut, PenSquare, Settings, Languages, Palette, Shield } from "lucide-react";
 import { UmmahConnectLogo } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ const themes = [
 export default function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const { setLanguage, t } = useTranslation();
   const { setTheme } = useTheme();
@@ -51,6 +51,11 @@ export default function AppSidebar() {
     { href: "/notifications", label: t.notifications, icon: Bell },
     { href: "/profile/me", label: t.profile, icon: User },
   ];
+  
+  if(isAdmin) {
+    navItems.push({ href: "/admin", label: "Admin Panel", icon: Shield });
+  }
+
 
   const handleLogout = async () => {
     try {
