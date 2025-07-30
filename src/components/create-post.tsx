@@ -72,7 +72,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
     setIsUploading(true);
     
     try {
-        let finalMediaUrl = "";
+        let finalMediaUrl = mediaUrl; // Default to link url
         let postType: Post['type'] = activeTab;
 
         if (file) {
@@ -81,8 +81,6 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
             const storageRef = ref(storage, storagePath);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
-        } else if (activeTab === 'link') {
-             finalMediaUrl = mediaUrl;
         }
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'> = {

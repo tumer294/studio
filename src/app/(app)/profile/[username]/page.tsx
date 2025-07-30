@@ -22,7 +22,7 @@ type PostWithUser = Post & { author: User };
 
 function ProfileSkeleton() {
     return (
-        <div className="p-4 md:p-0 space-y-6">
+        <div className="space-y-6">
             <Card className="overflow-hidden">
                 <Skeleton className="h-32 md:h-48 w-full" />
                 <div className="p-4 relative">
@@ -133,9 +133,8 @@ export default function ProfilePage() {
       return;
     }
 
-    // The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/ummahconnect-po02n/firestore/indexes?create_composite=ClBwcm9qZWN0cy91bW1haGNvbm5lY3QtcG8wMm4vZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3Bvc3RzL2luZGV4ZXMvXxABGgoKBnVzZXJJZBABGg0KCWNyZWF0ZWRBdBACGgwKCF9fbmFtZV9fEAI
     const postsRef = collection(db, 'posts');
-    const postsQuery = query(postsRef, where('userId', '==', profileUser.uid), orderBy('createdAt', 'desc'));
+    const postsQuery = query(postsRef, where('userId', '==', profileUser.uid));
 
     const unsubPosts = onSnapshot(
       postsQuery,
@@ -148,6 +147,7 @@ export default function ProfilePage() {
           postsData = postsData.filter((p) => p.status !== 'banned');
         }
 
+        postsData.sort((a,b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
         setUserPosts(postsData);
         setLoading(false);
       },
@@ -301,7 +301,7 @@ export default function ProfilePage() {
   const isOwnProfile = currentUser?.uid === profileUser.uid;
 
   return (
-    <div className="p-4 md:p-0">
+    <div>
         <Card className="overflow-hidden">
             <div className="h-32 md:h-48 bg-gradient-to-r from-primary/20 to-accent/20 relative group">
                 {profileUser.coverPhotoUrl && <Image src={profileUser.coverPhotoUrl} alt="Cover photo" fill={true} style={{objectFit:"cover"}} />}
