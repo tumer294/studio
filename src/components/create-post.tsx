@@ -39,15 +39,15 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
       const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
 
       if (activeTab === 'image' && !allowedImageTypes.includes(selectedFile.type)) {
-          toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image file (jpg, png, gif, webp).' });
+          toast({ variant: 'destructive', title: t.invalidFile, description: t.invalidImageFile });
           return;
       }
       if (activeTab === 'video' && !allowedVideoTypes.includes(selectedFile.type)) {
-          toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select a video file (mp4, webm, ogg).' });
+          toast({ variant: 'destructive', title: t.invalidFile, description: t.invalidVideoFile });
           return;
       }
       if (selectedFile.size > 20 * 1024 * 1024) { // 20MB limit
-          toast({ variant: 'destructive', title: 'File Too Large', description: 'File must be smaller than 20MB.' });
+          toast({ variant: 'destructive', title: t.fileTooLarge, description: t.fileTooLarge20MB });
           return;
       }
       
@@ -91,13 +91,13 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
         
         await handleCreatePost(newPost);
         
-        toast({ title: 'Success', description: 'Your post has been published.' });
+        toast({ title: t.success, description: t.postPublished });
         resetState();
         onPostCreated(); // Close the dialog
 
     } catch(error: any) {
         console.error("Error during post creation:", error);
-        toast({variant: 'destructive', title: 'Upload Error', description: error.message || 'Could not create the post.'})
+        toast({variant: 'destructive', title: t.uploadError, description: error.message || t.couldNotCreatePost})
     } finally {
         setIsUploading(false);
     }
@@ -189,6 +189,3 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
     </div>
   );
 }
-
-
-    

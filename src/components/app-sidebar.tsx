@@ -61,11 +61,11 @@ export default function AppSidebar() {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      toast({ title: t.loggedOut, description: t.loggedOutDesc });
       router.push('/login');
     } catch (error) {
       console.error("Logout Error:", error);
-      toast({ variant: 'destructive', title: "Error", description: "Failed to log out." });
+      toast({ variant: 'destructive', title: t.error, description: t.logoutError });
     }
   }
 

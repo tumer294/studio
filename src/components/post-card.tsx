@@ -62,12 +62,12 @@ function ReportDialog({ post, currentUser, children }: { post: Post, currentUser
             await updateDoc(postRef, {
                 reports: arrayUnion(report)
             });
-            toast({ title: "Post Reported", description: "Thank you for your feedback. We will review this post." });
+            toast({ title: t.postReported, description: t.reportThanks });
             setReason("");
             setIsOpen(false);
         } catch (error) {
             console.error("Error reporting post: ", error);
-            toast({ variant: 'destructive', title: "Error", description: "Could not submit your report." });
+            toast({ variant: 'destructive', title: t.error, description: t.couldNotSubmitReport });
         }
     };
 
@@ -104,6 +104,7 @@ function ReportDialog({ post, currentUser, children }: { post: Post, currentUser
 
 function CommentSection({ postId, currentUser }: { postId: string, currentUser: (User & import('firebase/auth').User) | null }) {
     const { toast } = useToast();
+    const { t } = useTranslation();
     const [comments, setComments] = useState<CommentType[]>([]);
     const [newComment, setNewComment] = useState("");
 
@@ -117,7 +118,10 @@ function CommentSection({ postId, currentUser }: { postId: string, currentUser: 
 
     const handleCommentSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if(!newComment.trim() || !currentUser) return;
+        if(!newComment.trim() || !currentUser) {
+            if(!currentUser) toast({ variant: 'destructive', title: t.authError, description: t.mustBeLoggedInToComment });
+            return;
+        };
 
         const newCommentObj: CommentType = {
             id: `comment-${Date.now()}-${Math.random()}`,
@@ -137,7 +141,7 @@ function CommentSection({ postId, currentUser }: { postId: string, currentUser: 
             setNewComment("");
         } catch (error) {
             console.error("Error adding comment: ", error);
-            toast({ variant: 'destructive', title: "Error", description: "Could not add comment."})
+            toast({ variant: 'destructive', title: t.error, description: t.couldNotAddComment})
         }
     }
 
@@ -196,7 +200,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   
   const handleLike = async () => {
       if (!currentUser) {
-           toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to like a post."})
+           toast({ variant: "destructive", title: t.authError, description: t.mustBeLoggedInToLike})
            return;
       }
       const postRef = doc(db, 'posts', post.id);
@@ -212,13 +216,13 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
           }
       } catch (error) {
           console.error("Error liking post: ", error);
-          toast({ variant: "destructive", title: "Error", description: "Could not update like."})
+          toast({ variant: "destructive", title: t.error, description: t.couldNotUpdateLike})
       }
   }
 
   const handleSavePost = async () => {
       if (!currentUser) {
-           toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to save a post."})
+           toast({ variant: "destructive", title: t.authError, description: t.mustBeLoggedInToSave})
            return;
       }
       const userRef = doc(db, 'users', currentUser.uid);
@@ -227,31 +231,31 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
               await updateDoc(userRef, {
                   savedPosts: arrayRemove(post.id)
               });
-              toast({ title: 'Post Unsaved', description: 'Removed from your saved posts.' });
+              toast({ title: t.postUnsaved, description: t.postUnsavedDesc });
           } else {
               await updateDoc(userRef, {
                   savedPosts: arrayUnion(post.id)
               });
-              toast({ title: 'Post Saved', description: 'Added to your saved posts.' });
+              toast({ title: t.postSaved, description: t.postSavedDesc });
           }
       } catch (error) {
           console.error("Error saving post: ", error);
-          toast({ variant: "destructive", title: "Error", description: "Could not save post."})
+          toast({ variant: "destructive", title: t.error, description: t.couldNotSavePost})
       }
   }
 
   const handleDelete = async () => {
     if (!currentUser || (currentUser.uid !== post.userId && currentUser.role !== 'admin')) {
-        toast({variant: 'destructive', title: 'Unauthorized', description: 'You can only delete your own posts.'});
+        toast({variant: 'destructive', title: t.unauthorized, description: t.unauthorizedDelete});
         return;
     }
     if (window.confirm('Are you sure you want to delete this post?')) {
         try {
             await deleteDoc(doc(db, 'posts', post.id));
-            toast({title: 'Success', description: 'Post deleted successfully.'});
+            toast({title: t.success, description: t.postDeletedDesc});
         } catch (error) {
             console.error("Error deleting post:", error);
-            toast({variant: 'destructive', title: 'Error', description: 'Could not delete post.'});
+            toast({variant: 'destructive', title: t.error, description: t.couldNotDeletePost});
         }
     }
   }
@@ -427,5 +431,3 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     </Card>
   );
 }
-
-    

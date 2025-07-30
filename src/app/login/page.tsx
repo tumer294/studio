@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UmmahConnectLogo } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/hooks/use-translation";
 
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
@@ -19,6 +20,7 @@ const googleProvider = new GoogleAuthProvider();
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,12 +31,12 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      toast({ title: "Success", description: "Logged in successfully! Redirecting..." });
+      toast({ title: t.success, description: t.loggedIn });
       router.push('/');
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Login Failed",
+        title: t.loginFailed,
         description: error.message,
       });
     } finally {
@@ -48,8 +50,8 @@ export default function LoginPage() {
         console.error("Google Login Error:", error);
         toast({
             variant: "destructive",
-            title: "Google Login Failed",
-            description: "Could not initiate Google login. Please try again.",
+            title: t.loginFailed,
+            description: t.googleLoginFailed,
         });
         setIsGoogleLoading(false);
     });

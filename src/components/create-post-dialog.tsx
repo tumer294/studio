@@ -24,7 +24,7 @@ export default function CreatePostDialog() {
     
     const handleCreatePost = async (newPostData: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'>) => {
         if (!user) {
-          toast({ variant: 'destructive', title: "Not Authenticated", description: "You must be logged in to create a post."});
+          toast({ variant: 'destructive', title: t.notAuthenticated, description: t.mustBeLoggedIn});
           return;
         }
 
@@ -40,7 +40,7 @@ export default function CreatePostDialog() {
           });
         } catch (error) {
            console.error("Error creating post:", error);
-           toast({ variant: 'destructive', title: "Post Error", description: "Could not create the post."});
+           toast({ variant: 'destructive', title: t.postError, description: t.couldNotCreatePost});
         }
     };
 
@@ -59,5 +59,3 @@ export default function CreatePostDialog() {
         </Dialog>
     )
 }
-
-    

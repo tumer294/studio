@@ -14,12 +14,14 @@ import { Label } from "@/components/ui/label";
 import { UmmahConnectLogo } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { signInWithRedirect, GoogleAuthProvider } from "firebase/auth";
+import { useTranslation } from "@/hooks/use-translation";
 
 const googleProvider = new GoogleAuthProvider();
 
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,7 +32,7 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) {
-      toast({ variant: "destructive", title: "Signup Failed", description: "Password should be at least 6 characters." });
+      toast({ variant: "destructive", title: t.signupFailed, description: t.passwordLengthError });
       return;
     }
     setIsLoading(true);
@@ -58,12 +60,12 @@ export default function SignupPage() {
         language: 'en',
       });
 
-      toast({ title: "Success", description: "Account created successfully!" });
+      toast({ title: t.success, description: t.accountCreated });
       router.push('/');
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Signup Failed",
+        title: t.signupFailed,
         description: error.message,
       });
     } finally {
@@ -77,8 +79,8 @@ export default function SignupPage() {
         console.error("Google Signup Error:", error);
         toast({
             variant: "destructive",
-            title: "Google Signup Failed",
-            description: "Could not initiate Google signup. Please try again.",
+            title: t.signupFailed,
+            description: t.googleSignupFailed,
         });
         setIsGoogleLoading(false);
     });

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from '@/hooks/use-translation';
 
 
 function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: number, icon: React.ElementType, isLoading: boolean }) {
@@ -47,6 +48,7 @@ export default function AdminPage() {
     const [stats, setStats] = useState({ userCount: 0, postCount: 0, reportedCount: 0, bannedCount: 0 });
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
+    const { t } = useTranslation();
 
     useEffect(() => {
         setLoading(true);
@@ -59,7 +61,7 @@ export default function AdminPage() {
                 setStats(prev => ({ ...prev, userCount: userSnapshot.data().count, postCount: postSnapshot.data().count }));
             } catch (error) {
                 console.error("Error fetching stats:", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch dashboard stats.' });
+                toast({ variant: 'destructive', title: t.error, description: t.couldNotFetchDashboardStats });
             }
         };
         
@@ -91,16 +93,16 @@ export default function AdminPage() {
             unsubUsers();
             unsubPosts();
         };
-    }, [toast, users.length, posts.length]);
+    }, [toast, users.length, posts.length, t]);
 
     const handleDeleteUser = async (userId: string, userName: string) => {
         if (window.confirm(`Are you sure you want to delete user ${userName}? This action cannot be undone.`)) {
             try {
                 await deleteDoc(doc(db, 'users', userId));
-                toast({ title: 'User Deleted', description: `${userName} has been successfully deleted.` });
+                toast({ title: t.userDeleted, description: t.userDeletedDesc(userName) });
             } catch (error) {
                 console.error("Error deleting user: ", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not delete user. Check Firestore rules.' });
+                toast({ variant: 'destructive', title: t.error, description: t.couldNotDeleteUser });
             }
         }
     };
@@ -109,10 +111,10 @@ export default function AdminPage() {
         try {
             const postRef = doc(db, 'posts', postId);
             await updateDoc(postRef, { status });
-            toast({ title: 'Post Updated', description: `Post has been ${status === 'banned' ? 'banned' : 'unbanned'}.` });
+            toast({ title: t.postUpdated, description: t.postUpdatedDesc(status) });
         } catch (error) {
             console.error("Error updating post status: ", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not update post status.' });
+            toast({ variant: 'destructive', title: t.error, description: t.couldNotUpdatePost });
         }
     };
 
@@ -121,10 +123,10 @@ export default function AdminPage() {
         if (window.confirm(`Are you sure you want to delete this post?`)) {
             try {
                 await deleteDoc(doc(db, 'posts', postId));
-                toast({ title: 'Post Deleted', description: 'The post has been successfully deleted.' });
+                toast({ title: t.postDeleted, description: t.postDeletedDesc });
             } catch (error) {
                 console.error("Error deleting post: ", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not delete post. Check Firestore rules.' });
+                toast({ variant: 'destructive', title: t.error, description: t.couldNotDeletePost });
             }
         }
     };

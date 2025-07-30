@@ -17,6 +17,7 @@ import PostCard from "@/components/post-card";
 import { UserPlus, Mail, Camera, UserCheck, Loader2 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from '@/hooks/use-translation';
 
 type PostWithUser = Post & { author: User };
 
@@ -55,6 +56,7 @@ function ProfileSkeleton() {
 export default function ProfilePage() {
   const { user: currentUser, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useParams();
   const usernameFromUrl = Array.isArray(params.username) ? params.username[0] : params.username;
@@ -100,6 +102,7 @@ export default function ProfilePage() {
 
         } catch (error) {
             console.error("Error fetching profile user:", error);
+            toast({ variant: 'destructive', title: t.error, description: t.couldNotFetchProfile });
             setProfileUser(null);
             setLoading(false);
         }
@@ -125,7 +128,7 @@ export default function ProfilePage() {
     return () => {
       if (unsubProfile) unsubProfile();
     };
-  }, [usernameFromUrl, currentUser?.username, authLoading, router]);
+  }, [usernameFromUrl, currentUser?.username, authLoading, router, toast, t]);
 
  useEffect(() => {
     if (!profileUser?.uid) {
@@ -155,15 +158,15 @@ export default function ProfilePage() {
         console.error('Error fetching user posts:', error);
         toast({
           variant: 'destructive',
-          title: 'Error',
-          description: 'Could not fetch user posts. You may need to create an index in Firestore.',
+          title: t.error,
+          description: t.couldNotFetchUserPosts,
         });
         setLoading(false);
       }
     );
 
     return () => unsubPosts();
-  }, [profileUser?.uid, currentUser, toast]);
+  }, [profileUser?.uid, currentUser, toast, t]);
 
 
   useEffect(() => {
@@ -219,13 +222,13 @@ export default function ProfilePage() {
             setSavedPostsWithUsers(populatedPosts);
         } catch(error) {
             console.error("Error fetching saved posts:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch saved posts.' });
+            toast({ variant: 'destructive', title: t.error, description: t.couldNotFetchSavedPosts });
         }
     };
 
     fetchSavedPosts();
 
-  }, [profileUser, currentUser, toast]);
+  }, [profileUser, currentUser, toast, t]);
 
 
   const handleFollow = async () => {
@@ -238,15 +241,15 @@ export default function ProfilePage() {
         if (isFollowing) {
             await updateDoc(currentUserRef, { following: arrayRemove(profileUser.uid) });
             await updateDoc(profileUserRef, { followers: arrayRemove(currentUser.uid) });
-            toast({ title: 'Unfollowed', description: `You are no longer following ${profileUser.name}.` });
+            toast({ title: t.unfollowed, description: t.unfollowedDesc(profileUser.name) });
         } else {
             await updateDoc(currentUserRef, { following: arrayUnion(profileUser.uid) });
             await updateDoc(profileUserRef, { followers: arrayUnion(currentUser.uid) });
-            toast({ title: 'Followed', description: `You are now following ${profileUser.name}.` });
+            toast({ title: t.followed, description: t.followedDesc(profileUser.name) });
         }
     } catch(error) {
         console.error("Error following user:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not complete the action.' });
+        toast({ variant: 'destructive', title: t.error, description: t.actionCouldNotBeCompleted });
     }
   }
 
@@ -255,7 +258,7 @@ export default function ProfilePage() {
     
     const file = e.target.files[0];
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({ variant: 'destructive', title: 'File Too Large', description: 'Image must be smaller than 5MB.' });
+        toast({ variant: 'destructive', title: t.fileTooLarge, description: t.imageTooLargeDesc });
         return;
     }
     
@@ -281,11 +284,11 @@ export default function ProfilePage() {
         return { ...prevUser, ...updateData };
       });
       
-      toast({ title: 'Success', description: `Your new ${type === 'avatar' ? 'avatar' : 'cover photo'} has been saved.` });
+      toast({ title: t.success, description: type === 'avatar' ? t.newAvatarSaved : t.newCoverSaved });
 
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload your image.' });
+      toast({ variant: 'destructive', title: t.uploadFailed, description: t.couldNotUploadImage });
     } finally {
       setIsUploading(null);
       if (e.target) {

@@ -82,12 +82,12 @@ export default function FeedPage() {
 
     }, (error) => {
         console.error("Error fetching posts:", error);
-        toast({variant: 'destructive', title: 'Error', description: 'Could not fetch posts. You may need to create Firestore indexes.'});
+        toast({variant: 'destructive', title: t.error, description: t.couldNotFetchPosts});
         setDataLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user, authLoading, toast]);
+  }, [user, authLoading, toast, t]);
 
 
   if (authLoading || !user) {
