@@ -9,7 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBnqVAhN0dofz1oLEaQh8ZkDkY9eWMX7us",
   authDomain: "ummahconnect-po02n.firebaseapp.com",
   projectId: "ummahconnect-po02n",
-  storageBucket: "ummahconnect-po02n.firebasestorage.app",
+  storageBucket: "ummahconnect-po02n.appspot.com",
   messagingSenderId: "697048800724",
   appId: "1:697048800724:web:c592f4fffab25e76214a41"
 };
@@ -19,6 +19,6 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
+const storage = getStorage(app, firebaseConfig.storageBucket);
 
 export { app, auth, db, storage };

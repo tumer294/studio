@@ -38,8 +38,8 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
           toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image file (jpg, png, gif, webp).' });
           return;
       }
-      if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
-          toast({ variant: 'destructive', title: 'File Too Large', description: 'File must be smaller than 5MB.' });
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+          toast({ variant: 'destructive', title: 'File Too Large', description: 'File must be smaller than 10MB.' });
           return;
       }
       
@@ -64,7 +64,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
     setIsUploading(true);
     
     try {
-        let finalMediaUrl = mediaUrl;
+        let finalMediaUrl = "";
         let postType: Post['type'] = activeTab;
 
         if (file && activeTab === 'image') {
@@ -72,10 +72,10 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
-        } else if (mediaUrl.trim() && activeTab === 'video') {
-            postType = 'video';
-        } else if (mediaUrl.trim() && activeTab === 'link') {
-            postType = 'link';
+        } else if (mediaUrl.trim()) {
+            finalMediaUrl = mediaUrl;
+            if (activeTab === 'video') postType = 'video';
+            if (activeTab === 'link') postType = 'link';
         } else {
             postType = 'text';
         }
