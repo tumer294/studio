@@ -96,7 +96,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // If loading is done and we have a user, render the app.
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex bg-background">
       {isMobile ? (
         <div className="flex flex-col w-full">
           <MobileHeader />
@@ -105,7 +105,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       ) : (
         <>
-          <AppSidebar />
+          <div className="sticky top-0 h-screen">
+            <AppSidebar />
+          </div>
           <main className="flex-1 max-w-2xl mx-auto py-8 px-4">{children}</main>
           <div className="hidden lg:block lg:flex-1" />
         </>

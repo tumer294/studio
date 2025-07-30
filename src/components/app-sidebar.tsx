@@ -27,6 +27,7 @@ import { useTranslation } from "@/hooks/use-translation";
 import { languages } from "@/app-strings";
 import { useTheme } from "@/hooks/use-theme-provider";
 import { useCreatePost } from "@/hooks/use-create-post";
+import { Separator } from "./ui/separator";
 
 
 const themes = [
@@ -73,35 +74,23 @@ export default function AppSidebar() {
   }
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-border/60 flex flex-col p-4 bg-card">
-      <div className="flex items-center gap-2 mb-8">
+    <aside className="w-64 flex-shrink-0 border-r border-border/60 flex flex-col p-4 bg-card h-full">
+      <div className="flex items-center gap-2 mb-4">
         <UmmahConnectLogo className="w-8 h-8 text-primary" />
         <h1 className="text-2xl font-headline font-bold text-primary">UmmahConnect</h1>
       </div>
       
-      <nav className="flex-1 flex flex-col gap-2">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-lg text-lg font-medium transition-colors",
-              pathname === item.href
-                ? "bg-primary text-primary-foreground"
-                : "text-foreground/70 hover:bg-accent/50 hover:text-foreground"
-            )}
-          >
-            <item.icon className="w-6 h-6" />
-            <span>{item.label}</span>
-          </Link>
-        ))}
-        <Button size="lg" className="mt-4 flex items-center gap-3 justify-start text-lg px-4 py-3 h-auto" onClick={onOpen}>
-            <PenSquare className="w-6 h-6" />
-            <span>{t.createPost}</span>
-        </Button>
-      </nav>
-
-      <div className="mt-auto flex flex-col gap-2">
+       <div className="flex flex-col gap-2 mb-4">
+        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary">
+            <Avatar>
+                <AvatarImage src={user.avatarUrl || user.photoURL || undefined} alt="User Avatar" data-ai-hint="person portrait" />
+                <AvatarFallback>{user.name ? user.name.charAt(0) : user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+                <p className="font-bold">{user.name || user.displayName}</p>
+                <p className="text-sm text-muted-foreground">@{user.username || user.email?.split('@')[0]}</p>
+            </div>
+        </div>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="justify-start gap-3 text-muted-foreground hover:text-foreground">
@@ -147,18 +136,35 @@ export default function AppSidebar() {
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
-
-        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary">
-            <Avatar>
-                <AvatarImage src={user.avatarUrl || user.photoURL || undefined} alt="User Avatar" data-ai-hint="person portrait" />
-                <AvatarFallback>{user.name ? user.name.charAt(0) : user.email?.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-                <p className="font-bold">{user.name || user.displayName}</p>
-                <p className="text-sm text-muted-foreground">@{user.username || user.email?.split('@')[0]}</p>
-            </div>
-        </div>
       </div>
+
+      <Separator className="mb-4" />
+
+      <nav className="flex-1 flex flex-col gap-2">
+        {navItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-lg text-lg font-medium transition-colors",
+              pathname === item.href
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground/70 hover:bg-accent/50 hover:text-foreground"
+            )}
+          >
+            <item.icon className="w-6 h-6" />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </nav>
+
+      <div className="mt-auto">
+        <Button size="lg" className="w-full flex items-center gap-3 justify-center text-lg px-4 py-3 h-auto" onClick={onOpen}>
+            <PenSquare className="w-6 h-6" />
+            <span>{t.createPost}</span>
+        </Button>
+       </div>
+
     </aside>
   );
 }
