@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, LinkIcon, PlayCircle, ShieldAlert, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2, LinkIcon, PlayCircle, ShieldAlert, Loader2 } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import {
@@ -189,6 +189,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   }, [initialPost.id]);
 
   const isLiked = currentUser ? (post.likes || []).includes(currentUser.uid) : false;
+  const isSaved = currentUser ? (currentUser.savedPosts || []).includes(post.id) : false;
   
   const handleLike = async () => {
       if (!currentUser) {
@@ -212,6 +213,30 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       }
   }
 
+  const handleSavePost = async () => {
+      if (!currentUser) {
+           toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to save a post."})
+           return;
+      }
+      const userRef = doc(db, 'users', currentUser.uid);
+      try {
+          if (isSaved) {
+              await updateDoc(userRef, {
+                  savedPosts: arrayRemove(post.id)
+              });
+              toast({ title: 'Post Unsaved', description: 'Removed from your saved posts.' });
+          } else {
+              await updateDoc(userRef, {
+                  savedPosts: arrayUnion(post.id)
+              });
+              toast({ title: 'Post Saved', description: 'Added to your saved posts.' });
+          }
+      } catch (error) {
+          console.error("Error saving post: ", error);
+          toast({ variant: "destructive", title: "Error", description: "Could not save post."})
+      }
+  }
+
   const handleDelete = async () => {
     if (!currentUser || (currentUser.uid !== post.userId && currentUser.role !== 'admin')) {
         toast({variant: 'destructive', title: 'Unauthorized', description: 'You can only delete your own posts.'});
@@ -227,25 +252,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         }
     }
   }
-
-  const handleShare = async () => {
-    const postUrl = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) {
-        try {
-            await navigator.share({
-                title: 'Check out this post on UmmahConnect!',
-                text: post.content,
-                url: postUrl,
-            });
-        } catch (error) {
-            console.error('Error sharing:', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not share post.' });
-        }
-    } else {
-        navigator.clipboard.writeText(postUrl); // Fallback for desktop
-        toast({ title: 'Link Copied', description: 'Post link copied to clipboard.' });
-    }
-  };
   
   const postDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'Just now';
 
@@ -389,9 +395,9 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
             <MessageCircle className="w-5 h-5" />
             <span>{(post.comments || []).length}</span>
           </Button>
-          <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-primary" onClick={handleShare}>
-            <Share2 className="w-5 h-5" />
-            <span>Share</span>
+          <Button variant="ghost" className={cn("flex items-center gap-2 text-muted-foreground transition-colors", isSaved ? 'text-primary' : 'hover:text-primary')} onClick={handleSavePost} disabled={!currentUser}>
+            <Bookmark className={cn("w-5 h-5", isSaved && 'fill-current')} />
+            <span>{isSaved ? 'Saved' : 'Save'}</span>
           </Button>
         </div>
         {isCommentSectionOpen && <CommentSection postId={post.id} currentUser={currentUser} />}

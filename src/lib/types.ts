@@ -12,6 +12,7 @@ export interface User {
   bio?: string;
   followers: string[]; // Array of user IDs
   following: string[]; // Array of user IDs
+  savedPosts?: string[]; // Array of post IDs
   'data-ai-hint'?: string;
   role: 'user' | 'admin';
   createdAt: any; // Firestore Timestamp
@@ -39,7 +40,7 @@ export interface Report {
 
 export interface Post {
   id: string;
-  userId: string;
+  userId:string;
   type: PostType;
   content: string; // For text post or caption
   mediaUrl?: string; // For image/video/link URL
