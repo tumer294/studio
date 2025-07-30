@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Edit, LinkIcon, PlayCircle, ShieldAlert, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, LinkIcon, PlayCircle, ShieldAlert, Loader2 } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import {
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Textarea } from './ui/textarea';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -175,10 +175,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
   const { toast } = useToast();
   const [post, setPost] = useState<Post>(initialPost);
   const [isCommentSectionOpen, setIsCommentSectionOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(initialPost.content);
-  const [isUpdating, setIsUpdating] = useState(false);
-
+  
   useEffect(() => {
       if (!initialPost.id) return;
       const postRef = doc(db, 'posts', initialPost.id);
@@ -186,13 +183,10 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
           if (doc.exists()) {
               const postData = { id: doc.id, ...doc.data() } as Post;
               setPost(postData);
-              if (!isEditing) {
-                  setEditedContent(postData.content);
-              }
           }
       });
       return () => unsubscribe();
-  }, [initialPost.id, isEditing]);
+  }, [initialPost.id]);
 
   const isLiked = currentUser ? (post.likes || []).includes(currentUser.uid) : false;
   
@@ -217,30 +211,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
           toast({ variant: "destructive", title: "Error", description: "Could not update like."})
       }
   }
-  
-  const handleUpdatePost = async () => {
-    if (!currentUser || (currentUser.uid !== post.userId && currentUser.role !== 'admin')) {
-      toast({ variant: 'destructive', title: 'Unauthorized', description: 'You cannot edit this post.' });
-      return;
-    }
-    if (editedContent.trim() === post.content.trim()) {
-        setIsEditing(false);
-        return;
-    }
-    setIsUpdating(true);
-    const postRef = doc(db, 'posts', post.id);
-    try {
-        await updateDoc(postRef, { content: editedContent });
-        toast({ title: 'Success', description: 'Post updated successfully.' });
-        setIsEditing(false);
-    } catch(error) {
-        console.error("Error updating post:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not update post. Check security rules.' });
-    } finally {
-        setIsUpdating(false);
-    }
-  }
-
 
   const handleDelete = async () => {
     if (!currentUser || (currentUser.uid !== post.userId && currentUser.role !== 'admin')) {
@@ -388,11 +358,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
                 <DropdownMenuContent align="end">
                     {(currentUser.uid === post.userId || currentUser.role === 'admin') && (
                       <>
-                        <DropdownMenuItem onSelect={() => setIsEditing(true)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            <span>Edit Post</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             <span>Delete Post</span>
@@ -411,25 +376,8 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
         )}
       </CardHeader>
       <CardContent className="px-4 pb-2">
-        {isEditing ? (
-            <div className='space-y-2'>
-                <Textarea 
-                    value={editedContent} 
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="min-h-[100px]"
-                />
-                <div className="flex justify-end gap-2">
-                    <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={isUpdating}>Cancel</Button>
-                    <Button onClick={handleUpdatePost} disabled={isUpdating}>
-                        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save
-                    </Button>
-                </div>
-            </div>
-        ) : (
-             post.content && <p className="whitespace-pre-wrap">{post.content}</p>
-        )}
-        {!isEditing && renderMedia()}
+        {post.content && <p className="whitespace-pre-wrap">{post.content}</p>}
+        {renderMedia()}
       </CardContent>
       <CardFooter className="flex flex-col items-start p-4">
         <div className="w-full flex justify-around">
@@ -451,5 +399,3 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     </Card>
   );
 }
-
-    
