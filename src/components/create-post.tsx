@@ -77,7 +77,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
 
         if (file) {
             postType = activeTab as 'image' | 'video';
-            const storagePath = postType === 'image' ? `images/${user.uid}/${Date.now()}-${file.name}` : `videos/${user.uid}/${Date.now()}-${file.name}`;
+            const storagePath = postType === 'image' ? `posts/images/${user.uid}/${Date.now()}-${file.name}` : `posts/videos/${user.uid}/${Date.now()}-${file.name}`;
             const storageRef = ref(storage, storagePath);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
@@ -191,3 +191,6 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
     </div>
   );
 }
+
+
+    

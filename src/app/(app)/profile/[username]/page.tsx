@@ -135,8 +135,7 @@ export default function ProfilePage() {
 
     // The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/ummahconnect-po02n/firestore/indexes?create_composite=ClBwcm9qZWN0cy91bW1haGNvbm5lY3QtcG8wMm4vZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3Bvc3RzL2luZGV4ZXMvXxABGgoKBnVzZXJJZBABGg0KCWNyZWF0ZWRBdBACGgwKCF9fbmFtZV9fEAI
     const postsRef = collection(db, 'posts');
-    // FIX: Removed orderBy from the query to prevent index error. Sorting will be done on the client-side.
-    const postsQuery = query(postsRef, where('userId', '==', profileUser.uid));
+    const postsQuery = query(postsRef, where('userId', '==', profileUser.uid), orderBy('createdAt', 'desc'));
 
     const unsubPosts = onSnapshot(
       postsQuery,
@@ -145,13 +144,6 @@ export default function ProfilePage() {
           (doc) => ({ id: doc.id, ...doc.data() }) as Post
         );
         
-        // Client-side sorting
-        postsData.sort((a, b) => {
-            const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-            const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-            return dateB - dateA;
-        });
-
         if (currentUser?.role !== 'admin' && currentUser?.uid !== profileUser.uid) {
           postsData = postsData.filter((p) => p.status !== 'banned');
         }
@@ -164,7 +156,7 @@ export default function ProfilePage() {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'Could not fetch user posts.',
+          description: 'Could not fetch user posts. You may need to create an index in Firestore.',
         });
         setLoading(false);
       }
@@ -284,8 +276,10 @@ export default function ProfilePage() {
       
       await updateDoc(userDocRef, updateData);
       
-      // FIX: Use callback form of setState to prevent race conditions with onSnapshot listener
-      setProfileUser((prevUser) => prevUser ? { ...prevUser, ...updateData } : null);
+      setProfileUser((prevUser) => {
+        if (!prevUser) return null;
+        return { ...prevUser, ...updateData };
+      });
       
       toast({ title: 'Success', description: `Your new ${type === 'avatar' ? 'avatar' : 'cover photo'} has been saved.` });
 
@@ -421,5 +415,7 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
 
     
