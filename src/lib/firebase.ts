@@ -20,7 +20,6 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
-// Explicitly pass the storage bucket URL to ensure correct initialization.
 const storage = getStorage(app);
 
 export { app, auth, db, storage };
