@@ -31,6 +31,12 @@ export interface Comment {
   createdAt: string; // Should be an ISO date string
 }
 
+export interface Report {
+  userId: string;
+  reason: string;
+  createdAt: any; // Firestore Timestamp
+}
+
 export interface Post {
   id: string;
   userId: string;
@@ -41,4 +47,6 @@ export interface Post {
   likes: string[]; // Array of user IDs who liked the post
   comments: Comment[];
   'data-ai-hint'?: string;
+  reports?: Report[];
+  status?: 'active' | 'banned';
 }

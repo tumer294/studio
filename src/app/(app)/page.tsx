@@ -48,7 +48,12 @@ export default function FeedPage() {
         return;
     };
 
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    const q = query(
+        collection(db, "posts"),
+        where("status", "!=", "banned"),
+        orderBy("status"), // This is a trick to make the where clause work with orderBy
+        orderBy("createdAt", "desc")
+    );
     
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
         const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
@@ -69,13 +74,13 @@ export default function FeedPage() {
                     usersData[userDoc.id] = { id: userDoc.id, ...userDoc.data() } as User;
                 }
             });
-            setUsers(usersData);
+            setUsers(prevUsers => ({ ...prevUsers, ...usersData }));
         }
         setDataLoading(false);
 
     }, (error) => {
         console.error("Error fetching posts:", error);
-        toast({variant: 'destructive', title: 'Error', description: 'Could not fetch posts.'});
+        toast({variant: 'destructive', title: 'Error', description: 'Could not fetch posts. You may need to create Firestore indexes.'});
         setDataLoading(false);
     });
 

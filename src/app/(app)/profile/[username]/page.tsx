@@ -82,9 +82,15 @@ export default function ProfilePage() {
                 });
 
                 const postsRef = collection(db, "posts");
+                // Only show non-banned posts on profile pages, unless it's the admin viewing
+                const postStatusQuery = currentUser?.role === 'admin' 
+                    ? where("status", "in", ["active", "banned", null])
+                    : where("status", "!=", "banned");
+
                 const postsQuery = query(
                     postsRef,
                     where("userId", "==", userDoc.id),
+                    postStatusQuery,
                     orderBy("createdAt", "desc")
                 );
                 
@@ -92,11 +98,14 @@ export default function ProfilePage() {
                     const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
                     setUserPosts(postsData);
                 }, (error) => {
-                  // Fallback for missing index: Fetch and sort on client
                   console.warn("Firestore query with orderBy failed, likely missing index. Fetching and sorting on client.", error);
-                  const postsQueryWithoutOrder = query(postsRef, where("userId", "==", userDoc.id));
+                  const postsQueryWithoutOrder = query(postsRef, where("userId", "==", userDoc.id), postStatusQuery);
                   getDocs(postsQueryWithoutOrder).then(postsSnapshotFallback => {
-                     const postsData = postsSnapshotFallback.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                     let postsData = postsSnapshotFallback.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                     // Filter out banned posts again on client if query fails, just in case
+                     if (currentUser?.role !== 'admin') {
+                         postsData = postsData.filter(p => p.status !== 'banned');
+                     }
                      const sortedPosts = postsData.sort((a, b) => {
                         const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
                         const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
@@ -108,7 +117,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             console.error("Error fetching profile:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data. You may need to create a Firestore index.' });
             setProfileUser(null);
         } finally {
             setLoading(false);
@@ -116,7 +125,6 @@ export default function ProfilePage() {
     };
 
     if (authLoading) {
-      // Wait for auth to finish before doing anything
       return;
     }
 
@@ -265,5 +273,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    

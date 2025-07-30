@@ -2,13 +2,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import type { Post, User, Comment as CommentType } from "@/lib/types";
+import type { Post, User, Comment as CommentType, Report } from "@/lib/types";
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Edit, LinkIcon, PlayCircle } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Edit, LinkIcon, PlayCircle, ShieldAlert } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import {
@@ -18,8 +18,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Textarea } from './ui/textarea';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -28,6 +40,65 @@ interface PostCardProps {
   post: Post;
   user: User;
 }
+
+function ReportDialog({ post, currentUser, children }: { post: Post, currentUser: (User & import('firebase/auth').User) | null, children: React.ReactNode }) {
+    const { toast } = useToast();
+    const [reason, setReason] = useState("");
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleReportSubmit = async () => {
+        if (!reason.trim() || !currentUser) return;
+
+        const report: Report = {
+            userId: currentUser.uid,
+            reason: reason,
+            createdAt: serverTimestamp(),
+        };
+
+        try {
+            const postRef = doc(db, 'posts', post.id);
+            await updateDoc(postRef, {
+                reports: arrayUnion(report)
+            });
+            toast({ title: "Post Reported", description: "Thank you for your feedback. We will review this post." });
+            setReason("");
+            setIsOpen(false);
+        } catch (error) {
+            console.error("Error reporting post: ", error);
+            toast({ variant: 'destructive', title: "Error", description: "Could not submit your report." });
+        }
+    };
+
+    const hasReported = post.reports?.some(r => r.userId === currentUser?.uid);
+
+    return (
+        <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+            <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Report Post</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Please provide a reason for reporting this post. Your feedback is important for community safety.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <Textarea
+                    placeholder="e.g., spam, inappropriate content, harassment..."
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    disabled={hasReported}
+                />
+                {hasReported && <p className="text-sm text-yellow-600">You have already reported this post.</p>}
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReportSubmit} disabled={!reason.trim() || hasReported}>
+                        Submit Report
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    )
+}
+
 
 function CommentSection({ postId, currentUser }: { postId: string, currentUser: (User & import('firebase/auth').User) | null }) {
     const { toast } = useToast();
@@ -276,7 +347,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
             @{user.username} · {postDate}
           </p>
         </div>
-        {currentUser && (currentUser.uid === post.userId || currentUser.role === 'admin') && (
+        {currentUser && (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -284,15 +355,26 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                        <Edit className="mr-2 h-4 w-4" />
-                        <span>Edit Post</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Delete Post</span>
-                    </DropdownMenuItem>
+                    {(currentUser.uid === post.userId || currentUser.role === 'admin') && (
+                      <>
+                        <DropdownMenuItem>
+                            <Edit className="mr-2 h-4 w-4" />
+                            <span>Edit Post</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Delete Post</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <ReportDialog post={post} currentUser={currentUser}>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <ShieldAlert className="mr-2 h-4 w-4" />
+                            <span>Report Post</span>
+                        </DropdownMenuItem>
+                    </ReportDialog>
                 </DropdownMenuContent>
             </DropdownMenu>
         )}
@@ -321,6 +403,3 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     </Card>
   );
 }
- 
-
-    
