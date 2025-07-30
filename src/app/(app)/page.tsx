@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, query, orderBy, onSnapshot, getDocs, doc, where, getDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/use-auth";
 import DailyWisdom from "@/components/daily-wisdom";
@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { PenSquare } from "lucide-react";
 import { useCreatePost } from "@/hooks/use-create-post";
+import { Card } from "@/components/ui/card";
 
 function FeedSkeleton() {
     return (
@@ -48,25 +49,20 @@ export default function FeedPage() {
         return;
     };
 
-    // Simplified query to avoid composite index requirement.
-    // We will filter banned posts on the client side.
     const q = query(
         collection(db, "posts"),
         orderBy("createdAt", "desc")
     );
     
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-        // Filter out banned posts on the client
         const postsData = querySnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() } as Post))
             .filter(post => post.status !== 'banned');
             
         setPosts(postsData);
 
-        // Get all unique user IDs from the posts that we don't have user data for
         const newUserIds = [...new Set(postsData.map(p => p.userId).filter(id => !users[id]))];
 
-        // Fetch user data for new user IDs
         if (newUserIds.length > 0) {
             const usersRef = collection(db, "users");
             const userDocsPromises = newUserIds.map(id => getDoc(doc(usersRef, id)));
