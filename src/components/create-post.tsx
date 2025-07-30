@@ -72,7 +72,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
     setIsUploading(true);
     
     try {
-        let finalMediaUrl = mediaUrl; // Default to link url
+        let finalMediaUrl = mediaUrl;
         let postType: Post['type'] = activeTab;
 
         if (file) {
@@ -93,7 +93,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
         
         toast({ title: t.success, description: t.postPublished });
         resetState();
-        onPostCreated(); // Close the dialog
+        onPostCreated();
 
     } catch(error: any) {
         console.error("Error during post creation:", error);
