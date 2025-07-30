@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, query, orderBy, onSnapshot, getDoc, doc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, getDocs, doc, where, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/use-auth";
 import DailyWisdom from "@/components/daily-wisdom";
@@ -34,7 +34,7 @@ function FeedSkeleton() {
 }
 
 export default function FeedPage() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const { onOpen } = useCreatePost();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -42,50 +42,48 @@ export default function FeedPage() {
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && user) {
-      const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
-      
-      const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-        setDataLoading(true);
-        const postsData: Post[] = [];
-        const userPromises: Promise<void>[] = [];
-        const fetchedUserIds = new Set<string>([user.uid]); // Start with the current user
-        setUsers(prev => ({...prev, [user.uid]: user}));
-
-        querySnapshot.forEach((doc) => {
-          const post = { id: doc.id, ...doc.data() } as Post;
-          postsData.push(post);
-
-          if (!users[post.userId] && !fetchedUserIds.has(post.userId)) {
-            fetchedUserIds.add(post.userId);
-            const userDocRef = doc(db, "users", post.userId);
-            const userPromise = getDoc(userDocRef).then(userDoc => {
-              if (userDoc.exists()) {
-                setUsers(prevUsers => ({
-                  ...prevUsers,
-                  [post.userId]: { id: userDoc.id, ...userDoc.data() } as User
-                }));
-              }
-            });
-            userPromises.push(userPromise);
-          }
-        });
-        
-        await Promise.all(userPromises);
-        setPosts(postsData);
+    if (authLoading) return;
+    if (!user) {
         setDataLoading(false);
-      }, (error) => {
+        return;
+    };
+
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+        const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+        setPosts(postsData);
+
+        // Get all unique user IDs from the posts
+        const userIds = [...new Set(postsData.map(p => p.userId))];
+
+        // Fetch user data for all posts if there are any user IDs
+        if (userIds.length > 0) {
+            const usersRef = collection(db, "users");
+            const userDocsPromises = userIds.map(id => getDoc(doc(usersRef, id)));
+            const userDocs = await Promise.all(userDocsPromises);
+
+            const usersData: Record<string, User> = {};
+            userDocs.forEach(userDoc => {
+                if (userDoc.exists()) {
+                    usersData[userDoc.id] = { id: userDoc.id, ...userDoc.data() } as User;
+                }
+            });
+            setUsers(usersData);
+        }
+        setDataLoading(false);
+
+    }, (error) => {
         console.error("Error fetching posts:", error);
         toast({variant: 'destructive', title: 'Error', description: 'Could not fetch posts.'});
         setDataLoading(false);
-      });
+    });
 
-      return () => unsubscribe();
-    }
-  }, [user, loading, toast]);
+    return () => unsubscribe();
+  }, [user, authLoading, toast]);
 
 
-  if (loading || !user) {
+  if (authLoading || !user) {
     return <FeedSkeleton />;
   }
 
@@ -110,9 +108,19 @@ export default function FeedPage() {
       ) : (
         <div className="space-y-4">
             {posts.map((post) => {
-            const postUser = users[post.userId];
-            // Render post only if user data is available
-            return postUser ? <PostCard key={post.id} post={post} user={postUser} /> : null;
+                const postUser = users[post.userId];
+                return postUser ? <PostCard key={post.id} post={post} user={postUser} /> : (
+                    <Card key={post.id} className="p-4">
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="w-10 h-10 rounded-full" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-3 w-32" />
+                            </div>
+                        </div>
+                         <Skeleton className="h-20 w-full mt-4" />
+                    </Card>
+                );
             })}
         </div>
       )}
