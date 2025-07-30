@@ -36,12 +36,18 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
       const selectedFile = event.target.files[0];
       
       const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+
       if (activeTab === 'image' && !allowedImageTypes.includes(selectedFile.type)) {
           toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image file (jpg, png, gif, webp).' });
           return;
       }
-      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-          toast({ variant: 'destructive', title: 'File Too Large', description: 'File must be smaller than 10MB.' });
+      if (activeTab === 'video' && !allowedVideoTypes.includes(selectedFile.type)) {
+          toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select a video file (mp4, webm, ogg).' });
+          return;
+      }
+      if (selectedFile.size > 20 * 1024 * 1024) { // 20MB limit
+          toast({ variant: 'destructive', title: 'File Too Large', description: 'File must be smaller than 20MB.' });
           return;
       }
       
@@ -70,8 +76,9 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
         let postType: Post['type'] = activeTab;
 
         if (file) {
-            postType = 'image';
-            const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
+            postType = activeTab as 'image' | 'video';
+            const storagePath = postType === 'image' ? `images/${user.uid}/${Date.now()}-${file.name}` : `videos/${user.uid}/${Date.now()}-${file.name}`;
+            const storageRef = ref(storage, storagePath);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
         } else {
@@ -148,8 +155,16 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
               </div>
             )}
             {(activeTab === 'video') && (
-               <div className="mt-2">
-                 <Input type="url" placeholder={t.videoUrlPlaceholder} value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
+              <div className="mt-2">
+                 <Label htmlFor="video-upload" className="text-sm font-medium text-muted-foreground">{t.selectVideoToUpload}</Label>
+                <Input 
+                  id="video-upload"
+                  type="file" 
+                  accept="video/*"
+                  onChange={handleFileChange}
+                  ref={fileInputRef}
+                  className="file:text-foreground"
+                />
               </div>
             )}
             {(activeTab === 'link') && (
