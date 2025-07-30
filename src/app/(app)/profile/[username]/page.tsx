@@ -311,7 +311,7 @@ export default function ProfilePage() {
     <div className="p-4 md:p-0">
         <Card className="overflow-hidden">
             <div className="h-32 md:h-48 bg-gradient-to-r from-primary/20 to-accent/20 relative group">
-                {profileUser.coverPhotoUrl && <Image src={profileUser.coverPhotoUrl} alt="Cover photo" fill={true} objectFit="cover" />}
+                {profileUser.coverPhotoUrl && <Image src={profileUser.coverPhotoUrl} alt="Cover photo" fill={true} style={{objectFit:"cover"}} />}
                 {isOwnProfile && (
                   <>
                     <input type="file" accept="image/*" ref={coverInputRef} onChange={(e) => handleImageUpload(e, 'cover')} className="hidden" />
@@ -422,6 +422,5 @@ export default function ProfilePage() {
     </div>
   );
 }
-
 
     
