@@ -18,6 +18,8 @@ import { UserPlus, Mail, Camera, UserCheck, Loader2 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
+type PostWithUser = Post & { author: User };
+
 function ProfileSkeleton() {
     return (
         <div className="p-4 md:p-0 space-y-6">
@@ -59,7 +61,7 @@ export default function ProfilePage() {
 
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
-  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
+  const [savedPostsWithUsers, setSavedPostsWithUsers] = useState<PostWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState< 'avatar' | 'cover' | null >(null);
   
@@ -71,8 +73,7 @@ export default function ProfilePage() {
   useEffect(() => {
     let unsubProfile: (() => void) | undefined;
     let unsubPosts: (() => void) | undefined;
-    let unsubSavedPosts: (() => void) | undefined;
-
+    
     const fetchProfileAndPosts = async (username: string) => {
         setLoading(true);
         try {
@@ -89,51 +90,35 @@ export default function ProfilePage() {
             const userDoc = userQuerySnapshot.docs[0];
             const userId = userDoc.id;
 
+            // Set up listener for the profile user document
             unsubProfile = onSnapshot(doc(db, "users", userId), (docSnapshot) => {
                 if (docSnapshot.exists()) {
                     const userData = { id: docSnapshot.id, ...docSnapshot.data() } as User;
                     setProfileUser(userData);
-
-                    if (userData.savedPosts && userData.savedPosts.length > 0) {
-                        const savedPostsQuery = query(collection(db, "posts"), where(documentId(), "in", userData.savedPosts));
-                        unsubSavedPosts = onSnapshot(savedPostsQuery, (postsSnapshot) => {
-                             const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                             setSavedPosts(postsData);
-                        });
-                    } else {
-                        setSavedPosts([]);
-                    }
                 } else {
                     setProfileUser(null);
                 }
             });
 
+            // Fetch user's own posts
             const postsRef = collection(db, "posts");
             const postsQuery = query(postsRef, where("userId", "==", userId));
-            
             unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
                 let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                
-                // Sort client-side to avoid composite index
-                postsData.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-
-                if (currentUser?.role !== 'admin') {
+                postsData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+                 if (currentUser?.role !== 'admin') {
                     postsData = postsData.filter(p => p.status !== 'banned');
                 }
                 setUserPosts(postsData);
-                setLoading(false);
+                setLoading(false); // End loading only after posts are fetched
             }, (error) => {
-                console.error("Error fetching posts:", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch posts.' });
-                setUserPosts([]);
-                setLoading(false);
+                 console.error("Error fetching user posts:", error);
+                 setLoading(false);
             });
 
         } catch (error) {
             console.error("Error fetching profile data:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
             setProfileUser(null);
-            setUserPosts([]);
             setLoading(false);
         }
     };
@@ -157,9 +142,52 @@ export default function ProfilePage() {
     return () => {
       if (unsubProfile) unsubProfile();
       if (unsubPosts) unsubPosts();
-      if (unsubSavedPosts) unsubSavedPosts();
     };
-  }, [usernameFromUrl, currentUser, authLoading, router, toast]);
+  }, [usernameFromUrl, currentUser, authLoading, router]);
+
+  // Effect for fetching saved posts and their authors
+  useEffect(() => {
+    let unsubSavedPosts: (() => void) | undefined;
+    
+    if (profileUser && currentUser && profileUser.id === currentUser.uid && (profileUser.savedPosts?.length || 0) > 0) {
+        const savedPostsQuery = query(collection(db, "posts"), where(documentId(), "in", profileUser.savedPosts));
+        
+        unsubSavedPosts = onSnapshot(savedPostsQuery, async (postsSnapshot) => {
+            const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+            
+            const authorIds = [...new Set(postsData.map(post => post.userId))];
+            if (authorIds.length === 0) {
+                 setSavedPostsWithUsers([]);
+                 return;
+            }
+            
+            const authorDocs = await Promise.all(authorIds.map(id => getDocs(query(collection(db, 'users'), where('uid', '==', id)))));
+            
+            const authors: Record<string, User> = {};
+            authorDocs.forEach(snapshot => {
+                if (!snapshot.empty) {
+                    const user = snapshot.docs[0].data() as User;
+                    authors[user.uid] = { ...user, id: snapshot.docs[0].id };
+                }
+            });
+
+            const populatedPosts = postsData.map(post => ({
+                ...post,
+                author: authors[post.userId]
+            })).filter(p => p.author); // Filter out posts where author couldn't be found
+             
+            setSavedPostsWithUsers(populatedPosts);
+        });
+
+    } else {
+        setSavedPostsWithUsers([]);
+    }
+
+    return () => {
+        if (unsubSavedPosts) unsubSavedPosts();
+    }
+  }, [profileUser, currentUser]);
+
 
   const handleFollow = async () => {
     if (!currentUser || !profileUser || currentUser.uid === profileUser.id) return;
@@ -207,9 +235,13 @@ export default function ProfilePage() {
       const userDocRef = doc(db, "users", profileUser.id);
       if (type === 'avatar') {
         await updateDoc(userDocRef, { avatarUrl: downloadURL });
+        // Manually update state to avoid race condition with onSnapshot
+        setProfileUser(prev => prev ? { ...prev, avatarUrl: downloadURL } : null);
         toast({ title: 'Avatar Updated', description: 'Your new avatar has been saved.' });
       } else {
         await updateDoc(userDocRef, { coverPhotoUrl: downloadURL });
+        // Manually update state to avoid race condition with onSnapshot
+        setProfileUser(prev => prev ? { ...prev, coverPhotoUrl: downloadURL } : null);
         toast({ title: 'Cover Photo Updated', description: 'Your new cover photo has been saved.' });
       }
     } catch (error) {
@@ -333,13 +365,10 @@ export default function ProfilePage() {
             </TabsContent>
             <TabsContent value="saved" className="mt-4 space-y-4">
                 {isOwnProfile ? (
-                    savedPosts.length > 0 ? (
-                        savedPosts.map(post => {
-                            // Note: This needs a robust way to fetch the author of each saved post.
-                            // For now, we're passing a placeholder, which might not be correct.
-                            // A real implementation would fetch each post's author.
-                            return <PostCard key={post.id} post={post} user={profileUser} />;
-                        })
+                    savedPostsWithUsers.length > 0 ? (
+                        savedPostsWithUsers.map(postWithUser => (
+                            <PostCard key={postWithUser.id} post={postWithUser} user={postWithUser.author} />
+                        ))
                     ) : (
                         <Card>
                             <CardContent className="text-center py-12 text-muted-foreground">
