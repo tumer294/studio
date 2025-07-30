@@ -9,6 +9,7 @@ import type { Post } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Heart, MessageCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useTranslation } from "@/hooks/use-translation";
 
 function ExploreSkeleton() {
     return (
@@ -74,6 +75,7 @@ export default function ExplorePage() {
     const [mostLikedPosts, setMostLikedPosts] = useState<Post[]>([]);
     const [mostCommentedPosts, setMostCommentedPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
+    const { t } = useTranslation();
 
     useEffect(() => {
         const q = query(collection(db, "posts"));
@@ -106,21 +108,25 @@ export default function ExplorePage() {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline text-3xl">Explore</CardTitle>
-                <p className="text-muted-foreground">Discover the most popular content from the community.</p>
-            </CardHeader>
-            <CardContent className="space-y-8">
-                 <PostGrid title="Most Liked Posts" posts={mostLikedPosts} icon={Heart} />
-                 <PostGrid title="Most Commented Posts" posts={mostCommentedPosts} icon={MessageCircle} />
+        <div className="p-4 md:p-0">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline text-3xl">{t.explore}</CardTitle>
+                    <p className="text-muted-foreground">{t.exploreDescription}</p>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                     <PostGrid title={t.mostLikedPosts} posts={mostLikedPosts} icon={Heart} />
+                     <PostGrid title={t.mostCommentedPosts} posts={mostCommentedPosts} icon={MessageCircle} />
 
-                 {mostLikedPosts.length === 0 && mostCommentedPosts.length === 0 && !loading && (
-                    <div className="text-center py-12 text-muted-foreground">
-                        <p>No image posts to explore yet.</p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                     {mostLikedPosts.length === 0 && mostCommentedPosts.length === 0 && !loading && (
+                        <div className="text-center py-12 text-muted-foreground">
+                            <p>{t.noImagePostsToExplore}</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     );
 }
+
+    

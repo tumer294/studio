@@ -44,6 +44,26 @@ const en = {
     welcomeToUmmahConnect: 'Welcome to UmmahConnect!',
     writeAComment: 'Write a comment...',
     send: 'Send',
+    // Explore Page
+    exploreDescription: 'Discover the most popular content from the community.',
+    mostLikedPosts: 'Most Liked Posts',
+    mostCommentedPosts: 'Most Commented Posts',
+    noImagePostsToExplore: 'No image posts to explore yet.',
+    // Notifications Page
+    noNewNotifications: 'You have no new notifications.',
+    // Profile Page
+    following: 'Following',
+    followers: 'Followers',
+    follow: 'Follow',
+    message: 'Message',
+    posts: 'Posts',
+    replies: 'Replies',
+    likes: 'Likes',
+    noPostsYet: 'No posts yet.',
+    noRepliesYet: 'No replies yet.',
+    noLikesYet: 'No likes yet.',
+    savedPostsArePrivate: 'Saved posts are private.',
+    youHaventSavedPosts: "You haven't saved any posts yet.",
     // Toasts & Alerts
     error: 'Error',
     success: 'Success',
@@ -140,6 +160,26 @@ const tr: typeof en = {
     welcomeToUmmahConnect: 'UmmahConnect\'e Hoş Geldiniz!',
     writeAComment: 'Bir yorum yazın...',
     send: 'Gönder',
+    // Explore Page
+    exploreDescription: 'Topluluğun en popüler içeriklerini keşfedin.',
+    mostLikedPosts: 'En Çok Beğenilen Gönderiler',
+    mostCommentedPosts: 'En Çok Yorum Alan Gönderiler',
+    noImagePostsToExplore: 'Keşfedilecek resimli gönderi henüz yok.',
+    // Notifications Page
+    noNewNotifications: 'Yeni bildiriminiz yok.',
+    // Profile Page
+    following: 'Takip Edilen',
+    followers: 'Takipçi',
+    follow: 'Takip Et',
+    message: 'Mesaj',
+    posts: 'Gönderiler',
+    replies: 'Yanıtlar',
+    likes: 'Beğeniler',
+    noPostsYet: 'Henüz gönderi yok.',
+    noRepliesYet: 'Henüz yanıt yok.',
+    noLikesYet: 'Henüz beğeni yok.',
+    savedPostsArePrivate: 'Kaydedilen gönderiler gizlidir.',
+    youHaventSavedPosts: 'Henüz hiçbir gönderi kaydetmediniz.',
     // Toasts & Alerts
     error: 'Hata',
     success: 'Başarılı',
@@ -236,6 +276,26 @@ const es: typeof en = {
     welcomeToUmmahConnect: '¡Bienvenido a UmmahConnect!',
     writeAComment: 'Escribe un comentario...',
     send: 'Enviar',
+    // Explore Page
+    exploreDescription: 'Descubre el contenido más popular de la comunidad.',
+    mostLikedPosts: 'Publicaciones con Más Me Gusta',
+    mostCommentedPosts: 'Publicaciones Más Comentadas',
+    noImagePostsToExplore: 'Aún no hay publicaciones con imágenes para explorar.',
+    // Notifications Page
+    noNewNotifications: 'No tienes notificaciones nuevas.',
+    // Profile Page
+    following: 'Siguiendo',
+    followers: 'Seguidores',
+    follow: 'Seguir',
+    message: 'Mensaje',
+    posts: 'Publicaciones',
+    replies: 'Respuestas',
+    likes: 'Me Gusta',
+    noPostsYet: 'Aún no hay publicaciones.',
+    noRepliesYet: 'Aún no hay respuestas.',
+    noLikesYet: 'Aún no hay "me gusta".',
+    savedPostsArePrivate: 'Las publicaciones guardadas son privadas.',
+    youHaventSavedPosts: 'Aún no has guardado ninguna publicación.',
     // Toasts & Alerts
     error: 'Error',
     success: 'Éxito',
@@ -332,6 +392,26 @@ const fr: typeof en = {
     welcomeToUmmahConnect: 'Bienvenue sur UmmahConnect !',
     writeAComment: 'Écrivez un commentaire...',
     send: 'Envoyer',
+    // Explore Page
+    exploreDescription: 'Découvrez le contenu le plus populaire de la communauté.',
+    mostLikedPosts: 'Publications les plus aimées',
+    mostCommentedPosts: 'Publications les plus commentées',
+    noImagePostsToExplore: 'Aucune publication avec image à explorer pour le moment.',
+    // Notifications Page
+    noNewNotifications: 'Vous n\'avez aucune nouvelle notification.',
+    // Profile Page
+    following: 'Abonnements',
+    followers: 'Abonnés',
+    follow: 'Suivre',
+    message: 'Message',
+    posts: 'Publications',
+    replies: 'Réponses',
+    likes: 'J\'aime',
+    noPostsYet: 'Aucune publication pour le moment.',
+    noRepliesYet: 'Aucune réponse pour le moment.',
+    noLikesYet: 'Aucun "j\'aime" pour le moment.',
+    savedPostsArePrivate: 'Les publications enregistrées sont privées.',
+    youHaventSavedPosts: 'Vous n\'avez encore enregistré aucune publication.',
     // Toasts & Alerts
     error: 'Erreur',
     success: 'Succès',
@@ -428,6 +508,26 @@ const ar: typeof en = {
     welcomeToUmmahConnect: 'أهلاً بك في UmmahConnect!',
     writeAComment: 'اكتب تعليقًا...',
     send: 'إرسال',
+    // Explore Page
+    exploreDescription: 'اكتشف المحتوى الأكثر شيوعًا في المجتمع.',
+    mostLikedPosts: 'المنشورات الأكثر إعجابًا',
+    mostCommentedPosts: 'المنشورات الأكثر تعليقًا',
+    noImagePostsToExplore: 'لا توجد منشورات صور لاستكشافها بعد.',
+    // Notifications Page
+    noNewNotifications: 'ليس لديك إشعارات جديدة.',
+    // Profile Page
+    following: 'متابَع',
+    followers: 'متابعون',
+    follow: 'متابعة',
+    message: 'رسالة',
+    posts: 'المنشورات',
+    replies: 'الردود',
+    likes: 'الإعجابات',
+    noPostsYet: 'لا توجد منشورات بعد.',
+    noRepliesYet: 'لا توجد ردود بعد.',
+    noLikesYet: 'لا توجد إعجابات بعد.',
+    savedPostsArePrivate: 'المنشورات المحفوظة خاصة.',
+    youHaventSavedPosts: 'لم تحفظ أي منشورات بعد.',
     // Toasts & Alerts
     error: 'خطأ',
     success: 'نجاح',
@@ -524,6 +624,26 @@ const hi: typeof en = {
     welcomeToUmmahConnect: 'UmmahConnect में आपका स्वागत है!',
     writeAComment: 'एक टिप्पणी लिखें...',
     send: 'भेजें',
+    // Explore Page
+    exploreDescription: 'समुदाय से सबसे लोकप्रिय सामग्री खोजें।',
+    mostLikedPosts: 'सबसे ज्यादा पसंद की गई पोस्ट',
+    mostCommentedPosts: 'सबसे ज्यादा टिप्पणी की गई पोस्ट',
+    noImagePostsToExplore: 'अभी तक एक्सप्लोर करने के लिए कोई इमेज पोस्ट नहीं है।',
+    // Notifications Page
+    noNewNotifications: 'आपके पास कोई नई सूचना नहीं है।',
+    // Profile Page
+    following: 'फॉलो कर रहे हैं',
+    followers: 'फॉलोअर्स',
+    follow: 'फॉलो करें',
+    message: 'संदेश',
+    posts: 'पोस्ट',
+    replies: 'उत्तर',
+    likes: 'लाइक',
+    noPostsYet: 'अभी तक कोई पोस्ट नहीं है।',
+    noRepliesYet: 'अभी तक कोई उत्तर नहीं है।',
+    noLikesYet: 'अभी तक कोई लाइक नहीं है।',
+    savedPostsArePrivate: 'सहेजी गई पोस्ट निजी हैं।',
+    youHaventSavedPosts: 'आपने अभी तक कोई पोस्ट नहीं सहेजी है।',
     // Toasts & Alerts
     error: 'त्रुटि',
     success: 'सफलता',
@@ -620,6 +740,26 @@ const bn: typeof en = {
     welcomeToUmmahConnect: 'UmmahConnect-এ স্বাগতম!',
     writeAComment: 'একটি মন্তব্য লিখুন...',
     send: 'পাঠান',
+    // Explore Page
+    exploreDescription: 'সম্প্রদায়ের সবচেয়ে জনপ্রিয় বিষয়বস্তু আবিষ্কার করুন।',
+    mostLikedPosts: 'সর্বাধিক লাইক করা পোস্ট',
+    mostCommentedPosts: 'সর্বাধিক মন্তব্য করা পোস্ট',
+    noImagePostsToExplore: 'এখনও অন্বেষণ করার জন্য কোনো ছবির পোস্ট নেই।',
+    // Notifications Page
+    noNewNotifications: 'আপনার কোনো নতুন বিজ্ঞপ্তি নেই।',
+    // Profile Page
+    following: 'অনুসরণ করছেন',
+    followers: 'অনুসারী',
+    follow: 'অনুসরণ করুন',
+    message: 'বার্তা',
+    posts: 'পোস্ট',
+    replies: 'উত্তর',
+    likes: 'লাইক',
+    noPostsYet: 'এখনও কোনো পোস্ট নেই।',
+    noRepliesYet: 'এখনও কোনো উত্তর নেই।',
+    noLikesYet: 'এখনও কোনো লাইক নেই।',
+    savedPostsArePrivate: 'সংরক্ষিত পোস্ট ব্যক্তিগত।',
+    youHaventSavedPosts: 'আপনি এখনও কোনো পোস্ট সংরক্ষণ করেননি।',
     // Toasts & Alerts
     error: 'ত্রুটি',
     success: 'সাফল্য',
@@ -716,6 +856,26 @@ const ru: typeof en = {
     welcomeToUmmahConnect: 'Добро пожаловать в UmmahConnect!',
     writeAComment: 'Напишите комментарий...',
     send: 'Отправить',
+    // Explore Page
+    exploreDescription: 'Откройте для себя самый популярный контент от сообщества.',
+    mostLikedPosts: 'Самые популярные публикации',
+    mostCommentedPosts: 'Самые комментируемые публикации',
+    noImagePostsToExplore: 'Пока нет публикаций с изображениями для исследования.',
+    // Notifications Page
+    noNewNotifications: 'У вас нет новых уведомлений.',
+    // Profile Page
+    following: 'Подписки',
+    followers: 'Подписчики',
+    follow: 'Подписаться',
+    message: 'Сообщение',
+    posts: 'Публикации',
+    replies: 'Ответы',
+    likes: 'Лайки',
+    noPostsYet: 'Пока нет публикаций.',
+    noRepliesYet: 'Пока нет ответов.',
+    noLikesYet: 'Пока нет лайков.',
+    savedPostsArePrivate: 'Сохраненные публикации являются приватными.',
+    youHaventSavedPosts: 'Вы еще не сохранили ни одной публикации.',
     // Toasts & Alerts
     error: 'Ошибка',
     success: 'Успешно',
@@ -812,6 +972,26 @@ const pt: typeof en = {
     welcomeToUmmahConnect: 'Bem-vindo ao UmmahConnect!',
     writeAComment: 'Escreva um comentário...',
     send: 'Enviar',
+    // Explore Page
+    exploreDescription: 'Descubra o conteúdo mais popular da comunidade.',
+    mostLikedPosts: 'Publicações Mais Curtidas',
+    mostCommentedPosts: 'Publicações Mais Comentadas',
+    noImagePostsToExplore: 'Nenhuma publicação com imagem para explorar ainda.',
+    // Notifications Page
+    noNewNotifications: 'Você не tem novas notificações.',
+    // Profile Page
+    following: 'Seguindo',
+    followers: 'Seguidores',
+    follow: 'Seguir',
+    message: 'Mensagem',
+    posts: 'Publicações',
+    replies: 'Respostas',
+    likes: 'Curtidas',
+    noPostsYet: 'Nenhuma publicação ainda.',
+    noRepliesYet: 'Nenhuma resposta ainda.',
+    noLikesYet: 'Nenhuma curtida ainda.',
+    savedPostsArePrivate: 'As publicações salvas são privadas.',
+    youHaventSavedPosts: 'Você ainda não salvou nenhuma publicação.',
     // Toasts & Alerts
     error: 'Erro',
     success: 'Sucesso',
@@ -908,6 +1088,26 @@ const id: typeof en = {
     welcomeToUmmahConnect: 'Selamat datang di UmmahConnect!',
     writeAComment: 'Tulis komentar...',
     send: 'Kirim',
+    // Explore Page
+    exploreDescription: 'Temukan konten paling populer dari komunitas.',
+    mostLikedPosts: 'Postingan Paling Disukai',
+    mostCommentedPosts: 'Postingan Paling Banyak Dikomentari',
+    noImagePostsToExplore: 'Belum ada postingan gambar untuk dijelajahi.',
+    // Notifications Page
+    noNewNotifications: 'Anda tidak memiliki notifikasi baru.',
+    // Profile Page
+    following: 'Mengikuti',
+    followers: 'Pengikut',
+    follow: 'Ikuti',
+    message: 'Pesan',
+    posts: 'Postingan',
+    replies: 'Balasan',
+    likes: 'Suka',
+    noPostsYet: 'Belum ada postingan.',
+    noRepliesYet: 'Belum ada balasan.',
+    noLikesYet: 'Belum ada suka.',
+    savedPostsArePrivate: 'Postingan yang disimpan bersifat pribadi.',
+    youHaventSavedPosts: 'Anda belum menyimpan postingan apa pun.',
     // Toasts & Alerts
     error: 'Kesalahan',
     success: 'Berhasil',
@@ -989,3 +1189,5 @@ export const appStrings = {
 };
 
 export type AppStrings = typeof appStrings;
+
+    

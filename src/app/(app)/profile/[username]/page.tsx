@@ -279,7 +279,6 @@ export default function ProfilePage() {
 
       await updateDoc(userDocRef, updateData);
 
-      // This is the safe way to update state that depends on the previous state.
       setProfileUser((prevUser) => {
         if (!prevUser) return null;
         return { ...prevUser, ...updateData };
@@ -343,10 +342,10 @@ export default function ProfilePage() {
                      <div className="flex gap-2">
                        <Button onClick={handleFollow} disabled={!currentUser}>
                           {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                          {isFollowing ? 'Following' : 'Follow'}
+                          {isFollowing ? t.following : t.follow}
                        </Button>
                        <Button variant="outline">
-                          <Mail className="mr-2 h-4 w-4"/> Message
+                          <Mail className="mr-2 h-4 w-4"/> {t.message}
                        </Button>
                      </div>
                    )}
@@ -361,11 +360,11 @@ export default function ProfilePage() {
                 <div className="flex gap-6 mt-4 text-sm">
                     <div>
                         <span className="font-bold">{(profileUser.following || []).length}</span>
-                        <span className="text-muted-foreground"> Following</span>
+                        <span className="text-muted-foreground"> {t.following}</span>
                     </div>
                     <div>
                         <span className="font-bold">{(profileUser.followers || []).length}</span>
-                        <span className="text-muted-foreground"> Followers</span>
+                        <span className="text-muted-foreground"> {t.followers}</span>
                     </div>
                 </div>
             </div>
@@ -373,10 +372,10 @@ export default function ProfilePage() {
 
         <Tabs defaultValue="posts" className="w-full mt-6">
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-                <TabsTrigger value="posts">Posts</TabsTrigger>
-                <TabsTrigger value="replies">Replies</TabsTrigger>
-                <TabsTrigger value="likes">Likes</TabsTrigger>
-                <TabsTrigger value="saved">Saved</TabsTrigger>
+                <TabsTrigger value="posts">{t.posts}</TabsTrigger>
+                <TabsTrigger value="replies">{t.replies}</TabsTrigger>
+                <TabsTrigger value="likes">{t.likes}</TabsTrigger>
+                <TabsTrigger value="saved">{t.saved}</TabsTrigger>
             </TabsList>
             <TabsContent value="posts" className="mt-4 space-y-4">
                 {userPosts.length > 0 ? (
@@ -385,18 +384,18 @@ export default function ProfilePage() {
                   ))
                 ) : (
                     <div className="text-center py-12 text-muted-foreground rounded-lg border">
-                        <p>No posts yet.</p>
+                        <p>{t.noPostsYet}</p>
                     </div>
                 )}
             </TabsContent>
             <TabsContent value="replies" className="mt-4 space-y-4">
                  <div className="text-center py-12 text-muted-foreground rounded-lg border">
-                    <p>No replies yet.</p>
+                    <p>{t.noRepliesYet}</p>
                  </div>
             </TabsContent>
             <TabsContent value="likes" className="mt-4 space-y-4">
                  <div className="text-center py-12 text-muted-foreground rounded-lg border">
-                    <p>No likes yet.</p>
+                    <p>{t.noLikesYet}</p>
                  </div>
             </TabsContent>
             <TabsContent value="saved" className="mt-4 space-y-4">
@@ -407,12 +406,12 @@ export default function ProfilePage() {
                         ))
                     ) : (
                         <div className="text-center py-12 text-muted-foreground rounded-lg border">
-                            <p>You haven't saved any posts yet.</p>
+                            <p>{t.youHaventSavedPosts}</p>
                         </div>
                     )
                 ) : (
                     <div className="text-center py-12 text-muted-foreground rounded-lg border">
-                        <p>Saved posts are private.</p>
+                        <p>{t.savedPostsArePrivate}</p>
                     </div>
                 )}
             </TabsContent>
@@ -422,6 +421,3 @@ export default function ProfilePage() {
 }
 
     
-
-    
-
