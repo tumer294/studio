@@ -13,6 +13,9 @@ import { Label } from "@/components/ui/label";
 import { UmmahConnectLogo } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -24,7 +27,6 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const auth = getAuth(app);
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: "Success", description: "Logged in successfully! Redirecting..." });
@@ -42,19 +44,15 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithRedirect(auth, provider);
-    } catch (error: any) {
-      console.error("Google Login Error:", error);
-      toast({
-        variant: "destructive",
-        title: "Google Login Failed",
-        description: "Could not log in with Google. Please try again.",
-      });
-      setIsGoogleLoading(false);
-    }
+    signInWithRedirect(auth, googleProvider).catch((error) => {
+        console.error("Google Login Error:", error);
+        toast({
+            variant: "destructive",
+            title: "Google Login Failed",
+            description: "Could not initiate Google login. Please try again.",
+        });
+        setIsGoogleLoading(false);
+    });
   };
 
   return (

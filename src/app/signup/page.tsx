@@ -6,13 +6,16 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createUserWithEmailAndPassword, updateProfile, signInWithRedirect, GoogleAuthProvider, getAuth } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore"; 
-import { app, db } from "@/lib/firebase"; // import app
+import { app, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UmmahConnectLogo } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
+
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
 export default function SignupPage() {
   const router = useRouter();
@@ -31,14 +34,12 @@ export default function SignupPage() {
       return;
     }
     setIsLoading(true);
-    const auth = getAuth(app);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       const name = `${firstName} ${lastName}`.trim();
       await updateProfile(user, { displayName: name });
 
-      // Create a user document in Firestore
       const username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || `user${Date.now()}`;
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
@@ -56,7 +57,6 @@ export default function SignupPage() {
         language: 'en',
       });
 
-
       toast({ title: "Success", description: "Account created successfully!" });
       router.push('/');
     } catch (error: any) {
@@ -72,19 +72,15 @@ export default function SignupPage() {
   
   const handleGoogleSignup = async () => {
     setIsGoogleLoading(true);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
-    try {
-        await signInWithRedirect(auth, provider);
-    } catch (error: any) {
+    signInWithRedirect(auth, googleProvider).catch((error) => {
         console.error("Google Signup Error:", error);
         toast({
             variant: "destructive",
             title: "Google Signup Failed",
-            description: "Could not sign up with Google. Please try again.",
+            description: "Could not initiate Google signup. Please try again.",
         });
         setIsGoogleLoading(false);
-    }
+    });
   };
 
   return (
