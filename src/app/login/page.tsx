@@ -29,7 +29,7 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: "Success", description: "Logged in successfully! Redirecting..." });
-      router.push('/'); // Redirect immediately on success
+      router.push('/');
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -54,7 +54,7 @@ export default function LoginPage() {
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
-        const username = user.email?.split('@')[0] || `user${Date.now()}`;
+        const username = user.email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || `user${Date.now()}`;
         await setDoc(userDocRef, {
           uid: user.uid,
           name: user.displayName,
@@ -67,11 +67,13 @@ export default function LoginPage() {
           following: [],
           createdAt: serverTimestamp(),
           role: 'user',
+          theme: 'light',
+          language: 'en',
         });
       }
 
       toast({ title: "Success", description: "Logged in successfully with Google! Redirecting..." });
-      router.push('/'); // Redirect immediately on success
+      router.push('/');
     } catch (error: any) {
       console.error("Google Login Error:", error);
       toast({
@@ -135,3 +137,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

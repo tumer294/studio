@@ -120,10 +120,15 @@ export default function ProfilePage() {
       return;
     }
 
+    if (!usernameFromUrl) {
+      setLoading(false);
+      return;
+    }
+
     if (usernameFromUrl === 'me') {
-        if (currentUser) {
+        if (currentUser?.username) {
             fetchUserProfile(currentUser.username);
-        } else {
+        } else if (!authLoading) {
             router.replace('/login');
         }
     } else {
@@ -260,3 +265,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

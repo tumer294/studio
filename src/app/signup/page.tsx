@@ -39,7 +39,7 @@ export default function SignupPage() {
       await updateProfile(user, { displayName: name });
 
       // Create a user document in Firestore
-      const username = email.split('@')[0];
+      const username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || `user${Date.now()}`;
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         name,
@@ -51,7 +51,9 @@ export default function SignupPage() {
         followers: [],
         following: [],
         createdAt: serverTimestamp(),
-        role: email === 'admin@example.com' ? 'admin' : 'user', // Assign role
+        role: email === 'admin@example.com' ? 'admin' : 'user',
+        theme: 'light',
+        language: 'en',
       });
 
 
@@ -80,7 +82,7 @@ export default function SignupPage() {
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
-         const username = user.email?.split('@')[0] || `user${Date.now()}`;
+         const username = user.email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || `user${Date.now()}`;
          await setDoc(doc(db, "users", user.uid), {
           uid: user.uid,
           name: user.displayName,
@@ -93,6 +95,8 @@ export default function SignupPage() {
           following: [],
           createdAt: serverTimestamp(),
           role: 'user',
+          theme: 'light',
+          language: 'en',
         });
       }
 
@@ -166,3 +170,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
