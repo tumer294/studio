@@ -96,7 +96,6 @@ export default function ProfilePage() {
                 } else {
                     setProfileUser(null);
                 }
-                // We will set loading to false in other effects
             });
 
         } catch (error) {
@@ -128,7 +127,6 @@ export default function ProfilePage() {
     };
   }, [usernameFromUrl, currentUser?.username, authLoading, router]);
 
-  // Effect for fetching user's own posts
   useEffect(() => {
       if (!profileUser?.uid) return;
 
@@ -160,7 +158,6 @@ export default function ProfilePage() {
   }, [profileUser?.uid, currentUser, toast]);
 
 
-  // Effect for fetching saved posts and their authors
   useEffect(() => {
     if (!profileUser || !currentUser || profileUser.uid !== currentUser.uid || !profileUser.savedPosts || profileUser.savedPosts.length === 0) {
         setSavedPostsWithUsers([]);
@@ -173,8 +170,8 @@ export default function ProfilePage() {
 
         try {
             const postPromises = [];
-            for (let i = 0; i < savedPostsIds.length; i += 10) {
-                const batchIds = savedPostsIds.slice(i, i + 10);
+            for (let i = 0; i < savedPostsIds.length; i += 30) {
+                const batchIds = savedPostsIds.slice(i, i + 30);
                 const postsRef = collection(db, 'posts');
                 const savedPostsQuery = query(postsRef, where(documentId(), 'in', batchIds));
                 postPromises.push(getDocs(savedPostsQuery));
@@ -189,8 +186,8 @@ export default function ProfilePage() {
             }
             
             const authorPromises = [];
-            for (let i = 0; i < authorIds.length; i += 10) {
-                const batchIds = authorIds.slice(i, i + 10);
+            for (let i = 0; i < authorIds.length; i += 30) {
+                const batchIds = authorIds.slice(i, i + 30);
                 const usersRef = collection(db, 'users');
                 const authorsQuery = query(usersRef, where('uid', 'in', batchIds));
                 authorPromises.push(getDocs(authorsQuery));
@@ -374,26 +371,20 @@ export default function ProfilePage() {
                     <PostCard key={post.id} post={post} user={profileUser} />
                   ))
                 ) : (
-                    <Card>
-                        <CardContent className="text-center py-12 text-muted-foreground">
-                            <p>No posts yet.</p>
-                        </CardContent>
-                    </Card>
+                    <div className="text-center py-12 text-muted-foreground rounded-lg border">
+                        <p>No posts yet.</p>
+                    </div>
                 )}
             </TabsContent>
-            <TabsContent value="replies" className="mt-4">
-                 <Card>
-                    <CardContent className="text-center py-12 text-muted-foreground">
-                        <p>No replies yet.</p>
-                    </CardContent>
-                </Card>
+            <TabsContent value="replies" className="mt-4 space-y-4">
+                <div className="text-center py-12 text-muted-foreground rounded-lg border">
+                    <p>No replies yet.</p>
+                </div>
             </TabsContent>
-            <TabsContent value="likes" className="mt-4">
-                 <Card>
-                    <CardContent className="text-center py-12 text-muted-foreground">
-                        <p>No likes yet.</p>
-                    </CardContent>
-                </Card>
+            <TabsContent value="likes" className="mt-4 space-y-4">
+                <div className="text-center py-12 text-muted-foreground rounded-lg border">
+                    <p>No likes yet.</p>
+                </div>
             </TabsContent>
             <TabsContent value="saved" className="mt-4 space-y-4">
                 {isOwnProfile ? (
@@ -402,18 +393,14 @@ export default function ProfilePage() {
                             <PostCard key={postWithUser.id} post={postWithUser} user={postWithUser.author} />
                         ))
                     ) : (
-                        <Card>
-                            <CardContent className="text-center py-12 text-muted-foreground">
-                                <p>You haven't saved any posts yet.</p>
-                            </CardContent>
-                        </Card>
+                        <div className="text-center py-12 text-muted-foreground rounded-lg border">
+                            <p>You haven't saved any posts yet.</p>
+                        </div>
                     )
                 ) : (
-                    <Card>
-                        <CardContent className="text-center py-12 text-muted-foreground">
-                            <p>Saved posts are private.</p>
-                        </CardContent>
-                    </Card>
+                    <div className="text-center py-12 text-muted-foreground rounded-lg border">
+                        <p>Saved posts are private.</p>
+                    </div>
                 )}
             </TabsContent>
         </Tabs>
