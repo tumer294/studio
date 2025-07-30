@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from "next/image";
-import { notFound, useParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from '@/hooks/use-auth';
 import { db, storage } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy, documentId } from 'firebase/firestore';
@@ -127,19 +127,22 @@ export default function ProfilePage() {
     };
   }, [usernameFromUrl, currentUser?.username, authLoading, router]);
 
-  useEffect(() => {
-    if (!profileUser?.uid) return;
-  
+ useEffect(() => {
+    if (!profileUser?.uid) {
+      if (!loading) setLoading(false);
+      return;
+    }
+
     const postsRef = collection(db, 'posts');
     const postsQuery = query(postsRef, where('userId', '==', profileUser.uid));
-  
+
     const unsubPosts = onSnapshot(
       postsQuery,
       (postsSnapshot) => {
         let postsData = postsSnapshot.docs.map(
           (doc) => ({ id: doc.id, ...doc.data() }) as Post
         );
-  
+
         // Client-side filtering
         if (currentUser?.role !== 'admin' && currentUser?.uid !== profileUser.uid) {
           postsData = postsData.filter((p) => p.status !== 'banned');
@@ -151,7 +154,7 @@ export default function ProfilePage() {
           const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
           return dateB - dateA;
         });
-  
+
         setUserPosts(postsData);
         setLoading(false);
       },
@@ -165,7 +168,7 @@ export default function ProfilePage() {
         setLoading(false);
       }
     );
-  
+
     return () => unsubPosts();
   }, [profileUser?.uid, currentUser, toast]);
 
@@ -236,7 +239,7 @@ export default function ProfilePage() {
     if (!currentUser || !profileUser || currentUser.uid === profileUser.uid) return;
 
     const currentUserRef = doc(db, "users", currentUser.uid);
-    const profileUserRef = doc(db, "users", profileUser.id);
+    const profileUserRef = doc(db, "users", profileUser.uid);
 
     try {
         if (isFollowing) {
@@ -280,6 +283,7 @@ export default function ProfilePage() {
       
       await updateDoc(userDocRef, updateData);
 
+      // This is the key fix: update state using a callback to ensure it's based on the latest previous state.
       setProfileUser((prevUser) => {
           if (!prevUser) return null;
           return { ...prevUser, ...updateData };
@@ -388,11 +392,15 @@ export default function ProfilePage() {
                     </div>
                 )}
             </TabsContent>
-            <TabsContent value="replies" className="mt-4 text-center py-12 text-muted-foreground rounded-lg border">
-                <p>No replies yet.</p>
+            <TabsContent value="replies" className="mt-4">
+                 <div className="text-center py-12 text-muted-foreground rounded-lg border">
+                    <p>No replies yet.</p>
+                 </div>
             </TabsContent>
-            <TabsContent value="likes" className="mt-4 text-center py-12 text-muted-foreground rounded-lg border">
-                <p>No likes yet.</p>
+            <TabsContent value="likes" className="mt-4">
+                 <div className="text-center py-12 text-muted-foreground rounded-lg border">
+                    <p>No likes yet.</p>
+                 </div>
             </TabsContent>
             <TabsContent value="saved" className="mt-4 space-y-4">
                 {isOwnProfile ? (
@@ -415,5 +423,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
