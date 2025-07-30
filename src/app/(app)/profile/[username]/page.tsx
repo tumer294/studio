@@ -66,67 +66,58 @@ export default function ProfilePage() {
     let unsubProfile: (() => void) | undefined;
     let unsubPosts: (() => void) | undefined;
 
-    const fetchUserProfile = async (username: string) => {
-        setLoading(true);
-        try {
-            const usersRef = collection(db, "users");
-            const q = query(usersRef, where("username", "==", username));
-            const querySnapshot = await getDocs(q);
+    const fetchProfileAndPosts = async (username: string) => {
+      setLoading(true);
+      try {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("username", "==", username));
+        const userQuerySnapshot = await getDocs(q);
 
-            if (querySnapshot.empty) {
-                setProfileUser(null);
-            } else {
-                const userDoc = querySnapshot.docs[0];
-                unsubProfile = onSnapshot(userDoc.ref, (doc) => {
-                    setProfileUser({ id: doc.id, ...doc.data() } as User);
-                });
-
-                const postsRef = collection(db, "posts");
-                
-                // Base query for user's posts ordered by creation date
-                let postsQuery = query(
-                    postsRef,
-                    where("userId", "==", userDoc.id),
-                    orderBy("createdAt", "desc")
-                );
-
-                unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
-                    let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                    // Client-side filter for banned posts if the viewer is not an admin
-                    if (currentUser?.role !== 'admin') {
-                        postsData = postsData.filter(p => p.status !== 'banned');
-                    }
-                    setUserPosts(postsData);
-                }, (error) => {
-                  console.warn("Firestore query with orderBy failed, likely missing index. Fetching and sorting on client.", error);
-                  // Fallback query without sorting by createdAt to avoid index error
-                  let fallbackQuery = query(postsRef, where("userId", "==", userDoc.id));
-                   
-                  getDocs(fallbackQuery).then(postsSnapshotFallback => {
-                     let postsData = postsSnapshotFallback.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                     
-                     // Client-side filter for banned posts if the viewer is not an admin
-                     if (currentUser?.role !== 'admin') {
-                        postsData = postsData.filter(p => p.status !== 'banned');
-                     }
-                     
-                     // Manually sort on the client
-                     const sortedPosts = postsData.sort((a, b) => {
-                        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-                        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-                        return dateB - dateA;
-                      });
-                      setUserPosts(sortedPosts);
-                  });
-                });
-            }
-        } catch (error) {
-            console.error("Error fetching profile:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
-            setProfileUser(null);
-        } finally {
-            setLoading(false);
+        if (userQuerySnapshot.empty) {
+          setProfileUser(null);
+          setLoading(false);
+          return;
         }
+
+        const userDoc = userQuerySnapshot.docs[0];
+        
+        // Setup listener for profile user data
+        unsubProfile = onSnapshot(userDoc.ref, (docSnapshot) => {
+          if (docSnapshot.exists()) {
+            setProfileUser({ id: docSnapshot.id, ...docSnapshot.data() } as User);
+          } else {
+            setProfileUser(null);
+          }
+        });
+        
+        // Then setup listener for posts
+        const postsRef = collection(db, "posts");
+        const postsQuery = query(
+          postsRef,
+          where("userId", "==", userDoc.id),
+          orderBy("createdAt", "desc")
+        );
+        
+        unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
+          let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+          if (currentUser?.role !== 'admin') {
+              postsData = postsData.filter(p => p.status !== 'banned');
+          }
+          setUserPosts(postsData);
+          setLoading(false); // Only set loading to false after posts are also fetched
+        }, (error) => {
+            console.error("Error fetching posts:", error);
+            setUserPosts([]);
+            setLoading(false);
+        });
+
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
+        setProfileUser(null);
+        setUserPosts([]);
+        setLoading(false);
+      }
     };
 
     if (authLoading) {
@@ -142,10 +133,12 @@ export default function ProfilePage() {
         if (currentUser?.username) {
             router.replace(`/profile/${currentUser.username}`);
         } else if (!authLoading) {
+            // This case might happen briefly, or if user has no username.
+            // If they have no username, they should probably be redirected.
             router.replace('/login');
         }
     } else {
-        fetchUserProfile(usernameFromUrl);
+        fetchProfileAndPosts(usernameFromUrl);
     }
 
     return () => {
@@ -278,5 +271,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
