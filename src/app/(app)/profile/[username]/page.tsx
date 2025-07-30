@@ -72,13 +72,13 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let unsubProfile: (() => void) | undefined;
-    let unsubPosts: (() => void) | undefined;
     
-    const fetchProfileAndPosts = async (username: string) => {
+    const fetchProfile = async (username: string) => {
         setLoading(true);
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("username", "==", username));
+        
         try {
-            const usersRef = collection(db, "users");
-            const q = query(usersRef, where("username", "==", username));
             const userQuerySnapshot = await getDocs(q);
 
             if (userQuerySnapshot.empty) {
@@ -88,9 +88,8 @@ export default function ProfilePage() {
             }
 
             const userDoc = userQuerySnapshot.docs[0];
-            const userId = userDoc.id;
-
-            unsubProfile = onSnapshot(doc(db, "users", userId), (docSnapshot) => {
+            
+            unsubProfile = onSnapshot(userDoc.ref, (docSnapshot) => {
                 if (docSnapshot.exists()) {
                     const userData = { id: docSnapshot.id, ...docSnapshot.data() } as User;
                     setProfileUser(userData);
@@ -99,49 +98,68 @@ export default function ProfilePage() {
                 }
             });
 
-            const postsRef = collection(db, "posts");
-            const postsQuery = query(postsRef, where("userId", "==", userId), orderBy("createdAt", "desc"));
-            
-            unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
-                let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                if (currentUser?.role !== 'admin') {
-                    postsData = postsData.filter(p => p.status !== 'banned');
-                }
-                setUserPosts(postsData);
-                setLoading(false);
-            }, (error) => {
-                 console.error("Error fetching user posts:", error);
-                 setLoading(false);
-            });
-
         } catch (error) {
-            console.error("Error fetching profile data:", error);
+            console.error("Error fetching profile user:", error);
             setProfileUser(null);
-            setLoading(false);
+        } finally {
+            // We will set loading to false in other effects
         }
     };
-
+    
     if (authLoading) return;
     if (!usernameFromUrl) {
       setLoading(false);
       return;
     }
-
+    
     if (usernameFromUrl === 'me') {
         if (currentUser?.username) {
             router.replace(`/profile/${currentUser.username}`);
         } else if (!authLoading) {
-            router.replace('/login');
+            // This case might happen briefly, or if a user has no username.
+            // Let the loading skeleton show until redirection or data is found.
         }
     } else {
-        fetchProfileAndPosts(usernameFromUrl);
+        fetchProfile(usernameFromUrl);
     }
 
     return () => {
       if (unsubProfile) unsubProfile();
-      if (unsubPosts) unsubPosts();
     };
   }, [usernameFromUrl, currentUser, authLoading, router]);
+
+  // Effect for fetching user's own posts
+  useEffect(() => {
+      if (!profileUser) return;
+
+      setLoading(true);
+      const postsRef = collection(db, "posts");
+      const postsQuery = query(postsRef, where("userId", "==", profileUser.uid));
+      
+      const unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
+          let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+          
+          if (currentUser?.role !== 'admin' && currentUser?.uid !== profileUser.uid) {
+              postsData = postsData.filter(p => p.status !== 'banned');
+          }
+          
+          // Sort posts by date on the client side
+          postsData.sort((a, b) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+            return dateB - dateA;
+          });
+
+          setUserPosts(postsData);
+          setLoading(false); 
+      }, (error) => {
+           console.error("Error fetching user posts:", error);
+           setLoading(false);
+      });
+
+      return () => unsubPosts();
+  }, [profileUser, currentUser]);
+
 
   // Effect for fetching saved posts and their authors
   useEffect(() => {
@@ -154,36 +172,41 @@ export default function ProfilePage() {
         const savedPostsIds = profileUser.savedPosts || [];
         if (savedPostsIds.length === 0) return;
 
-        const postsRef = collection(db, 'posts');
-        const savedPostsQuery = query(postsRef, where(documentId(), 'in', savedPostsIds));
-        const postsSnapshot = await getDocs(savedPostsQuery);
-        const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+        try {
+            const postsRef = collection(db, 'posts');
+            const savedPostsQuery = query(postsRef, where(documentId(), 'in', savedPostsIds));
+            const postsSnapshot = await getDocs(savedPostsQuery);
+            const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
 
-        const authorIds = [...new Set(postsData.map(post => post.userId))];
-        if (authorIds.length === 0) {
-            setSavedPostsWithUsers([]);
-            return;
+            const authorIds = [...new Set(postsData.map(post => post.userId))];
+            if (authorIds.length === 0) {
+                setSavedPostsWithUsers([]);
+                return;
+            }
+
+            const usersRef = collection(db, 'users');
+            // Firestore 'in' queries are limited to 10 items. For more, this needs batching.
+            const authorsQuery = query(usersRef, where('uid', 'in', authorIds.slice(0, 10)));
+            const authorsSnapshot = await getDocs(authorsQuery);
+            
+            const authors: Record<string, User> = {};
+            authorsSnapshot.forEach(doc => {
+                const user = { id: doc.id, ...doc.data() } as User;
+                authors[user.uid] = user;
+            });
+            
+            const populatedPosts = postsData
+                .map(post => ({
+                    ...post,
+                    author: authors[post.userId]
+                }))
+                .filter(p => p.author) // Filter out posts where author couldn't be found
+                .sort((a, b) => savedPostsIds.indexOf(b.id) - savedPostsIds.indexOf(a.id)); 
+
+            setSavedPostsWithUsers(populatedPosts);
+        } catch(error) {
+            console.error("Error fetching saved posts:", error);
         }
-
-        const usersRef = collection(db, 'users');
-        const authorsQuery = query(usersRef, where('uid', 'in', authorIds));
-        const authorsSnapshot = await getDocs(authorsQuery);
-        
-        const authors: Record<string, User> = {};
-        authorsSnapshot.forEach(doc => {
-            const user = { id: doc.id, ...doc.data() } as User;
-            authors[user.uid] = user;
-        });
-
-        const populatedPosts = postsData
-            .map(post => ({
-                ...post,
-                author: authors[post.userId]
-            }))
-            .filter(p => p.author) // Filter out posts where author couldn't be found
-            .sort((a, b) => savedPostsIds.indexOf(b.id) - savedPostsIds.indexOf(a.id)); // Keep original save order
-
-        setSavedPostsWithUsers(populatedPosts);
     };
 
     fetchSavedPosts();
@@ -255,7 +278,7 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading || authLoading) {
+  if (loading || authLoading || !profileUser) {
       return <ProfileSkeleton />;
   }
   
@@ -391,3 +414,6 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+
+    
