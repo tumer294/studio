@@ -253,32 +253,33 @@ export default function ProfilePage() {
     }
   }
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
+ const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
     if (!e.target.files || e.target.files.length === 0 || !profileUser) return;
-    
+
     const file = e.target.files[0];
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({ variant: 'destructive', title: t.fileTooLarge, description: t.imageTooLargeDesc });
-        return;
+      toast({ variant: 'destructive', title: t.fileTooLarge, description: t.imageTooLargeDesc });
+      return;
     }
-    
+
     setIsUploading(type);
-    
-    const filePath = type === 'avatar' 
-      ? `avatars/${profileUser.uid}/${Date.now()}-${file.name}` 
+
+    const filePath = type === 'avatar'
+      ? `avatars/${profileUser.uid}/${Date.now()}-${file.name}`
       : `covers/${profileUser.uid}/${Date.now()}-${file.name}`;
-      
+
     const storageRef = ref(storage, filePath);
-    
+
     try {
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
-      
+
       const userDocRef = doc(db, "users", profileUser.uid);
       const updateData = type === 'avatar' ? { avatarUrl: downloadURL } : { coverPhotoUrl: downloadURL };
-      
+
       await updateDoc(userDocRef, updateData);
-      
+
+      // This is the safe way to update state that depends on the previous state.
       setProfileUser((prevUser) => {
         if (!prevUser) return null;
         return { ...prevUser, ...updateData };
@@ -292,10 +293,11 @@ export default function ProfilePage() {
     } finally {
       setIsUploading(null);
       if (e.target) {
-          e.target.value = '';
+        e.target.value = '';
       }
     }
-  }
+  };
+
 
   if (loading || authLoading || !profileUser) {
       return <ProfileSkeleton />;
@@ -422,3 +424,4 @@ export default function ProfilePage() {
     
 
     
+
