@@ -83,23 +83,16 @@ export default function ProfilePage() {
 
                 const postsRef = collection(db, "posts");
                 
-                // Base query for user's posts
+                // Base query for user's posts ordered by creation date
                 let postsQuery = query(
                     postsRef,
-                    where("userId", "==", userDoc.id)
+                    where("userId", "==", userDoc.id),
+                    orderBy("createdAt", "desc")
                 );
-                
-                // Add sorting and filtering logic
-                // Admins can see banned posts, others can't.
-                if (currentUser?.role !== 'admin') {
-                   postsQuery = query(postsQuery, where("status", "!=", "banned"));
-                }
-                postsQuery = query(postsQuery, orderBy("createdAt", "desc"));
-                
 
                 unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
                     let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                    // Client-side filter as a fallback for non-admin users if the query somehow includes banned posts.
+                    // Client-side filter for banned posts if the viewer is not an admin
                     if (currentUser?.role !== 'admin') {
                         postsData = postsData.filter(p => p.status !== 'banned');
                     }
@@ -108,12 +101,15 @@ export default function ProfilePage() {
                   console.warn("Firestore query with orderBy failed, likely missing index. Fetching and sorting on client.", error);
                   // Fallback query without sorting by createdAt to avoid index error
                   let fallbackQuery = query(postsRef, where("userId", "==", userDoc.id));
-                   if (currentUser?.role !== 'admin') {
-                       fallbackQuery = query(fallbackQuery, where("status", "!=", "banned"));
-                   }
-
+                   
                   getDocs(fallbackQuery).then(postsSnapshotFallback => {
                      let postsData = postsSnapshotFallback.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                     
+                     // Client-side filter for banned posts if the viewer is not an admin
+                     if (currentUser?.role !== 'admin') {
+                        postsData = postsData.filter(p => p.status !== 'banned');
+                     }
+                     
                      // Manually sort on the client
                      const sortedPosts = postsData.sort((a, b) => {
                         const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
@@ -282,3 +278,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
