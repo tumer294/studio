@@ -7,10 +7,12 @@ import { Home, Compass, Bell, User, PenSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/use-translation";
+import { useCreatePost } from "@/hooks/use-create-post";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { t } = useTranslation();
+  const { onOpen } = useCreatePost();
 
   const navItems = [
     { href: "/", label: t.home, icon: Home },
@@ -36,7 +38,7 @@ export default function MobileBottomNav() {
           </Link>
         ))}
 
-        <Button size="icon" className="w-14 h-14 -mt-6 rounded-full shadow-lg" aria-label={t.createPost}>
+        <Button size="icon" className="w-14 h-14 -mt-6 rounded-full shadow-lg" aria-label={t.createPost} onClick={onOpen}>
             <PenSquare className="w-6 h-6" />
         </Button>
         

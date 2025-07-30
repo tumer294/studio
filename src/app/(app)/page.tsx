@@ -2,16 +2,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/use-auth";
 import DailyWisdom from "@/components/daily-wisdom";
-import CreatePost from "@/components/create-post";
 import PostCard from "@/components/post-card";
 import type { Post, User } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { PenSquare } from "lucide-react";
+import { useCreatePost } from "@/hooks/use-create-post";
 
 function FeedSkeleton() {
     return (
@@ -34,6 +36,7 @@ function FeedSkeleton() {
 export default function FeedPage() {
   const { user, loading } = useAuth();
   const { toast } = useToast();
+  const { onOpen } = useCreatePost();
   const [posts, setPosts] = useState<Post[]>([]);
   const [users, setUsers] = useState<Record<string, User>>({});
   const [dataLoading, setDataLoading] = useState(true);
@@ -79,27 +82,8 @@ export default function FeedPage() {
 
       return () => unsubscribe();
     }
-  }, [user, loading]);
+  }, [user, loading, toast]);
 
-  const handleCreatePost = async (newPostData: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'>) => {
-    if (!user) {
-      toast({ variant: 'destructive', title: "Not Authenticated", description: "You must be logged in to create a post."});
-      return;
-    }
-
-    try {
-      await addDoc(collection(db, "posts"), {
-        ...newPostData,
-        userId: user.uid,
-        createdAt: serverTimestamp(),
-        likes: [],
-        comments: [],
-      });
-    } catch (error) {
-       console.error("Error creating post:", error);
-       toast({ variant: 'destructive', title: "Post Error", description: "Could not create the post."});
-    }
-  };
 
   if (loading || !user) {
     return <FeedSkeleton />;
@@ -108,7 +92,12 @@ export default function FeedPage() {
   return (
     <div className="space-y-6 p-4 md:p-0">
       <DailyWisdom />
-      <CreatePost user={user} onCreatePost={handleCreatePost} />
+      <div className="p-4 bg-card border rounded-lg shadow-sm">
+        <Button variant="outline" className="w-full justify-start text-muted-foreground" onClick={onOpen}>
+            <PenSquare className="mr-2" /> What's on your mind?
+        </Button>
+      </div>
+
       <div className="flex items-center gap-4">
         <h2 className="text-lg font-bold">Feed</h2>
         <Separator className="flex-1" />

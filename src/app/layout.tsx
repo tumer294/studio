@@ -5,6 +5,8 @@ import './globals.css';
 import { AuthProvider } from '@/hooks/use-auth-provider';
 import { TranslationProvider } from '@/hooks/use-translation';
 import { ThemeProvider } from '@/hooks/use-theme-provider';
+import { CreatePostProvider } from '@/hooks/use-create-post';
+import CreatePostDialog from '@/components/create-post-dialog';
 
 export const metadata: Metadata = {
   title: 'UmmahConnect',
@@ -27,8 +29,11 @@ export default function RootLayout({
         <AuthProvider>
           <ThemeProvider>
             <TranslationProvider>
-              {children}
-              <Toaster />
+                <CreatePostProvider>
+                  <CreatePostDialog />
+                  {children}
+                  <Toaster />
+                </CreatePostProvider>
             </TranslationProvider>
           </ThemeProvider>
         </AuthProvider>

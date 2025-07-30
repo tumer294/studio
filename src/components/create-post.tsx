@@ -6,7 +6,6 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { Post } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,11 +14,12 @@ import { storage } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface CreatePostProps {
-  onCreatePost: (post: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'>) => Promise<void>;
   user: any; 
+  onPostCreated: () => void;
+  handleCreatePost: (post: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'>) => Promise<void>;
 }
 
-export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
+export default function CreatePost({ user, onPostCreated, handleCreatePost }: CreatePostProps) {
   const [activeTab, setActiveTab] = useState<"text" | "image" | "video" | "link">("text");
   const [postContent, setPostContent] = useState("");
   const [mediaUrl, setMediaUrl] = useState(""); 
@@ -87,10 +87,11 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
             mediaUrl: finalMediaUrl,
         };
 
-        await onCreatePost(newPost);
+        await handleCreatePost(newPost);
         
         toast({ title: 'Success', description: 'Your post has been published.' });
         resetState();
+        onPostCreated(); // Close the dialog
 
     } catch(error: any) {
         console.error("Error during post creation:", error);
@@ -108,8 +109,6 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
   ] as const;
   
   const handleTabClick = (tabId: "text" | "image" | "video" | "link") => {
-      // Reset state when switching tabs to avoid confusion
-      setPostContent(""); // Clear text content as well
       setFile(null);
       setMediaUrl("");
       if(fileInputRef.current) {
@@ -122,8 +121,7 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
 
 
   return (
-    <Card>
-      <CardContent className="p-4">
+    <div className="flex flex-col gap-4">
         <div className="flex items-start gap-4">
           <Avatar>
             <AvatarImage src={user.avatarUrl || user.photoURL} alt={user.name} data-ai-hint="person portrait" />
@@ -136,8 +134,10 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
             />
-            
-            {(activeTab === 'image') && (
+          </div>
+        </div>
+        <div>
+           {(activeTab === 'image') && (
               <div className="mt-2">
                  <Label htmlFor="image-upload" className="text-sm font-medium text-muted-foreground">Select an image to upload</Label>
                 <Input 
@@ -160,25 +160,22 @@ export default function CreatePost({ user, onCreatePost }: CreatePostProps) {
                  <Input type="url" placeholder="Enter link to share" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
               </div>
             )}
-
-            <div className="flex justify-between items-center mt-2">
-                <div className="flex gap-1">
-                    {TABS.map(tab => (
-                        <Button key={tab.id} variant={activeTab === tab.id ? "secondary" : "ghost"} size="icon" onClick={() => handleTabClick(tab.id)} aria-label={tab.label} disabled={isUploading}>
-                            <tab.icon className="w-5 h-5"/>
-                        </Button>
-                    ))}
-                </div>
-               <div className="flex items-center gap-2">
-                <Button onClick={handlePost} disabled={isPostButtonDisabled}>
-                  {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isUploading ? 'Posting...' : 'Post'}
-                </Button>
-              </div>
+        </div>
+        <div className="flex justify-between items-center mt-2">
+            <div className="flex gap-1">
+                {TABS.map(tab => (
+                    <Button key={tab.id} variant={activeTab === tab.id ? "secondary" : "ghost"} size="icon" onClick={() => handleTabClick(tab.id)} aria-label={tab.label} disabled={isUploading}>
+                        <tab.icon className="w-5 h-5"/>
+                    </Button>
+                ))}
             </div>
+           <div className="flex items-center gap-2">
+            <Button onClick={handlePost} disabled={isPostButtonDisabled}>
+              {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isUploading ? 'Posting...' : 'Post'}
+            </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

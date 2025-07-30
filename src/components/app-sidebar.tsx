@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/use-translation";
 import { languages } from "@/app-strings";
 import { useTheme } from "@/hooks/use-theme-provider";
+import { useCreatePost } from "@/hooks/use-create-post";
 
 
 const themes = [
@@ -42,6 +43,7 @@ export default function AppSidebar() {
   const { toast } = useToast();
   const { setLanguage, t } = useTranslation();
   const { setTheme } = useTheme();
+  const { onOpen } = useCreatePost();
 
   const navItems = [
     { href: "/", label: t.home, icon: Home },
@@ -88,7 +90,7 @@ export default function AppSidebar() {
             <span>{item.label}</span>
           </Link>
         ))}
-        <Button size="lg" className="mt-4 flex items-center gap-3 justify-start text-lg px-4 py-3 h-auto">
+        <Button size="lg" className="mt-4 flex items-center gap-3 justify-start text-lg px-4 py-3 h-auto" onClick={onOpen}>
             <PenSquare className="w-6 h-6" />
             <span>{t.createPost}</span>
         </Button>
