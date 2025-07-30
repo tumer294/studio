@@ -128,33 +128,45 @@ export default function ProfilePage() {
   }, [usernameFromUrl, currentUser?.username, authLoading, router]);
 
   useEffect(() => {
-      if (!profileUser?.uid) return;
-
-      const postsRef = collection(db, "posts");
-      const postsQuery = query(postsRef, where("userId", "==", profileUser.uid));
-      
-      const unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
-          let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-          
-          if (currentUser?.role !== 'admin' && currentUser?.uid !== profileUser.uid) {
-              postsData = postsData.filter(p => p.status !== 'banned');
-          }
-          
-          postsData.sort((a, b) => {
-            const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-            const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-            return dateB - dateA;
-          });
-
-          setUserPosts(postsData);
-          setLoading(false);
-      }, (error) => {
-            console.error("Error fetching user posts:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user posts. The query may require an index.' });
-            setLoading(false);
-      });
-      return () => unsubPosts();
-
+    if (!profileUser?.uid) return;
+  
+    const postsRef = collection(db, 'posts');
+    const postsQuery = query(postsRef, where('userId', '==', profileUser.uid));
+  
+    const unsubPosts = onSnapshot(
+      postsQuery,
+      (postsSnapshot) => {
+        let postsData = postsSnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as Post
+        );
+  
+        // Client-side filtering
+        if (currentUser?.role !== 'admin' && currentUser?.uid !== profileUser.uid) {
+          postsData = postsData.filter((p) => p.status !== 'banned');
+        }
+        
+        // Client-side sorting
+        postsData.sort((a, b) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+          return dateB - dateA;
+        });
+  
+        setUserPosts(postsData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error fetching user posts:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Could not fetch user posts.',
+        });
+        setLoading(false);
+      }
+    );
+  
+    return () => unsubPosts();
   }, [profileUser?.uid, currentUser, toast]);
 
 
@@ -224,7 +236,7 @@ export default function ProfilePage() {
     if (!currentUser || !profileUser || currentUser.uid === profileUser.uid) return;
 
     const currentUserRef = doc(db, "users", currentUser.uid);
-    const profileUserRef = doc(db, "users", profileUser.uid);
+    const profileUserRef = doc(db, "users", profileUser.id);
 
     try {
         if (isFollowing) {
@@ -269,8 +281,8 @@ export default function ProfilePage() {
       await updateDoc(userDocRef, updateData);
 
       setProfileUser((prevUser) => {
-        if (!prevUser) return null;
-        return { ...prevUser, ...updateData };
+          if (!prevUser) return null;
+          return { ...prevUser, ...updateData };
       });
       
       toast({ title: 'Success', description: `Your new ${type === 'avatar' ? 'avatar' : 'cover photo'} has been saved.` });
@@ -376,15 +388,11 @@ export default function ProfilePage() {
                     </div>
                 )}
             </TabsContent>
-            <TabsContent value="replies" className="mt-4 space-y-4">
-                <div className="text-center py-12 text-muted-foreground rounded-lg border">
-                    <p>No replies yet.</p>
-                </div>
+            <TabsContent value="replies" className="mt-4 text-center py-12 text-muted-foreground rounded-lg border">
+                <p>No replies yet.</p>
             </TabsContent>
-            <TabsContent value="likes" className="mt-4 space-y-4">
-                <div className="text-center py-12 text-muted-foreground rounded-lg border">
-                    <p>No likes yet.</p>
-                </div>
+            <TabsContent value="likes" className="mt-4 text-center py-12 text-muted-foreground rounded-lg border">
+                <p>No likes yet.</p>
             </TabsContent>
             <TabsContent value="saved" className="mt-4 space-y-4">
                 {isOwnProfile ? (
@@ -407,3 +415,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
