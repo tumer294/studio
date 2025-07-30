@@ -49,10 +49,10 @@ function ReportDialog({ post, currentUser, children }: { post: Post, currentUser
     const handleReportSubmit = async () => {
         if (!reason.trim() || !currentUser) return;
 
-        const report: Report = {
+        const report: Omit<Report, 'createdAt'> & { createdAt: string } = {
             userId: currentUser.uid,
             reason: reason,
-            createdAt: serverTimestamp(),
+            createdAt: new Date().toISOString(),
         };
 
         try {
