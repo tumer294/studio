@@ -132,32 +132,38 @@ export default function ProfilePage() {
   useEffect(() => {
       if (!profileUser) return;
 
-      setLoading(true);
-      const postsRef = collection(db, "posts");
-      const postsQuery = query(postsRef, where("userId", "==", profileUser.uid));
-      
-      const unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
-          let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-          
-          if (currentUser?.role !== 'admin' && currentUser?.uid !== profileUser.uid) {
-              postsData = postsData.filter(p => p.status !== 'banned');
-          }
-          
-          // Sort posts by date on the client side
-          postsData.sort((a, b) => {
-            const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-            const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-            return dateB - dateA;
-          });
+      const fetchPosts = async () => {
+        setLoading(true);
+        const postsRef = collection(db, "posts");
+        const postsQuery = query(postsRef, where("userId", "==", profileUser.uid));
+        
+        const unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
+            let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+            
+            if (currentUser?.role !== 'admin' && currentUser?.uid !== profileUser.uid) {
+                postsData = postsData.filter(p => p.status !== 'banned');
+            }
+            
+            postsData.sort((a, b) => {
+              const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+              const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+              return dateB - dateA;
+            });
 
-          setUserPosts(postsData);
-          setLoading(false); 
-      }, (error) => {
-           console.error("Error fetching user posts:", error);
-           setLoading(false);
-      });
+            setUserPosts(postsData);
+            setLoading(false); 
+        }, (error) => {
+             console.error("Error fetching user posts:", error);
+             setLoading(false);
+        });
+        return unsubPosts;
+      };
 
-      return () => unsubPosts();
+      const unsubscribe = fetchPosts();
+
+      return () => {
+        unsubscribe.then(unsub => unsub && unsub());
+      };
   }, [profileUser, currentUser]);
 
 
@@ -185,7 +191,6 @@ export default function ProfilePage() {
             }
 
             const usersRef = collection(db, 'users');
-            // Firestore 'in' queries are limited to 10 items. For more, this needs batching.
             const authorsQuery = query(usersRef, where('uid', 'in', authorIds.slice(0, 10)));
             const authorsSnapshot = await getDocs(authorsQuery);
             
@@ -200,7 +205,7 @@ export default function ProfilePage() {
                     ...post,
                     author: authors[post.userId]
                 }))
-                .filter(p => p.author) // Filter out posts where author couldn't be found
+                .filter(p => p.author)
                 .sort((a, b) => savedPostsIds.indexOf(b.id) - savedPostsIds.indexOf(a.id)); 
 
             setSavedPostsWithUsers(populatedPosts);
@@ -258,15 +263,17 @@ export default function ProfilePage() {
       const downloadURL = await getDownloadURL(snapshot.ref);
       
       const userDocRef = doc(db, "users", profileUser.uid);
-      if (type === 'avatar') {
-        await updateDoc(userDocRef, { avatarUrl: downloadURL });
-        setProfileUser(prev => prev ? { ...prev, avatarUrl: downloadURL } : null);
-        toast({ title: 'Avatar Updated', description: 'Your new avatar has been saved.' });
-      } else {
-        await updateDoc(userDocRef, { coverPhotoUrl: downloadURL });
-        setProfileUser(prev => prev ? { ...prev, coverPhotoUrl: downloadURL } : null);
-        toast({ title: 'Cover Photo Updated', description: 'Your new cover photo has been saved.' });
-      }
+      const updateData = type === 'avatar' ? { avatarUrl: downloadURL } : { coverPhotoUrl: downloadURL };
+      
+      await updateDoc(userDocRef, updateData);
+
+      setProfileUser(prevUser => {
+        if (!prevUser) return null;
+        return { ...prevUser, ...updateData };
+      });
+      
+      toast({ title: 'Success', description: `Your new ${type === 'avatar' ? 'avatar' : 'cover photo'} has been saved.` });
+
     } catch (error) {
       console.error("Error uploading image:", error);
       toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload your image.' });
@@ -282,7 +289,7 @@ export default function ProfilePage() {
       return <ProfileSkeleton />;
   }
   
-  if (!profileUser) {
+  if (!profileUser && !loading) {
     notFound();
   }
   
@@ -414,6 +421,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-
-    
