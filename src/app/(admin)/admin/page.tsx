@@ -47,6 +47,7 @@ export default function AdminPage() {
     const { toast } = useToast();
 
     useEffect(() => {
+        setLoading(true);
         const fetchStats = async () => {
              try {
                 const usersCol = collection(db, 'users');
@@ -68,11 +69,15 @@ export default function AdminPage() {
         const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
             setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
             setLoading(false);
+        }, (error) => {
+            console.error("Error fetching users:", error);
+            setLoading(false);
         });
 
         const unsubPosts = onSnapshot(collection(db, 'posts'), (snapshot) => {
             setPosts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post)));
-            setLoading(false);
+        }, (error) => {
+             console.error("Error fetching posts:", error);
         });
 
         return () => {
@@ -88,7 +93,7 @@ export default function AdminPage() {
                 toast({ title: 'User Deleted', description: `${userName} has been successfully deleted.` });
             } catch (error) {
                 console.error("Error deleting user: ", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not delete user.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not delete user. Check Firestore rules.' });
             }
         }
     };
@@ -100,10 +105,15 @@ export default function AdminPage() {
                 toast({ title: 'Post Deleted', description: 'The post has been successfully deleted.' });
             } catch (error) {
                 console.error("Error deleting post: ", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not delete post.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not delete post. Check Firestore rules.' });
             }
         }
     };
+
+    const usersById = users.reduce((acc, user) => {
+        acc[user.id] = user;
+        return acc;
+    }, {} as Record<string, User>);
 
 
     return (
@@ -152,7 +162,7 @@ export default function AdminPage() {
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="w-8 h-8">
                                                     <AvatarImage src={user.avatarUrl} />
-                                                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                                    <AvatarFallback>{user.name?.charAt(0) ?? 'U'}</AvatarFallback>
                                                 </Avatar>
                                                 <div>
                                                     <p>{user.name}</p>
@@ -161,7 +171,7 @@ export default function AdminPage() {
                                             </div>
                                         </TableCell>
                                         <TableCell>{user.email}</TableCell>
-                                        <TableCell>{user.createdAt ? formatDistanceToNow(user.createdAt.toDate(), { addSuffix: true }) : 'N/A'}</TableCell>
+                                        <TableCell>{user.createdAt?.toDate ? formatDistanceToNow(user.createdAt.toDate(), { addSuffix: true }) : 'N/A'}</TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -200,7 +210,7 @@ export default function AdminPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                 {loading && Array.from({length: 3}).map((_, i) => (
+                                 {loading && posts.length === 0 && Array.from({length: 3}).map((_, i) => (
                                      <TableRow key={`post-skel-${i}`}>
                                         <TableCell><Skeleton className="h-8 w-24" /></TableCell>
                                         <TableCell><Skeleton className="h-8 w-32" /></TableCell>
@@ -209,12 +219,12 @@ export default function AdminPage() {
                                      </TableRow>
                                 ))}
                                 {posts.map((post) => {
-                                    const author = users.find(u => u.id === post.userId);
+                                    const author = usersById[post.userId];
                                     return (
                                         <TableRow key={post.id}>
-                                            <TableCell>{author?.name || 'Unknown'}</TableCell>
+                                            <TableCell>{author?.name || 'Unknown User'}</TableCell>
                                             <TableCell className="max-w-xs truncate">{post.content || 'Media Post'}</TableCell>
-                                            <TableCell>{post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'N/A'}</TableCell>
+                                            <TableCell>{post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'N/A'}</TableCell>
                                             <TableCell className="text-right">
                                                 <Button variant="ghost" size="icon" onClick={() => handleDeletePost(post.id)}>
                                                     <Trash2 className="h-4 w-4 text-destructive" />
