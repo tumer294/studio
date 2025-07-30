@@ -282,8 +282,7 @@ export default function ProfilePage() {
       const updateData = type === 'avatar' ? { avatarUrl: downloadURL } : { coverPhotoUrl: downloadURL };
       
       await updateDoc(userDocRef, updateData);
-
-      // This is the key fix: update state using a callback to ensure it's based on the latest previous state.
+      
       setProfileUser((prevUser) => {
           if (!prevUser) return null;
           return { ...prevUser, ...updateData };
@@ -312,7 +311,7 @@ export default function ProfilePage() {
     <div className="p-4 md:p-0">
         <Card className="overflow-hidden">
             <div className="h-32 md:h-48 bg-gradient-to-r from-primary/20 to-accent/20 relative group">
-                {profileUser.coverPhotoUrl && <Image src={profileUser.coverPhotoUrl} alt="Cover photo" layout="fill" objectFit="cover" />}
+                {profileUser.coverPhotoUrl && <Image src={profileUser.coverPhotoUrl} alt="Cover photo" fill={true} objectFit="cover" />}
                 {isOwnProfile && (
                   <>
                     <input type="file" accept="image/*" ref={coverInputRef} onChange={(e) => handleImageUpload(e, 'cover')} className="hidden" />
@@ -392,12 +391,12 @@ export default function ProfilePage() {
                     </div>
                 )}
             </TabsContent>
-            <TabsContent value="replies" className="mt-4">
+            <TabsContent value="replies" className="mt-4 space-y-4">
                  <div className="text-center py-12 text-muted-foreground rounded-lg border">
                     <p>No replies yet.</p>
                  </div>
             </TabsContent>
-            <TabsContent value="likes" className="mt-4">
+            <TabsContent value="likes" className="mt-4 space-y-4">
                  <div className="text-center py-12 text-muted-foreground rounded-lg border">
                     <p>No likes yet.</p>
                  </div>
@@ -423,3 +422,6 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+
+    
