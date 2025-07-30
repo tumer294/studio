@@ -24,7 +24,7 @@ function ProfileSkeleton() {
             <Card className="overflow-hidden">
                 <Skeleton className="h-32 md:h-48 w-full" />
                 <div className="p-4 relative">
-                    <div className="absolute -top-16 left-6">
+                    <div className="absolute -top-12 md:-top-16 left-4 md:left-6">
                         <Skeleton className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-card" />
                     </div>
                     <div className="flex justify-end items-center mb-4 h-10">
@@ -94,7 +94,6 @@ export default function ProfilePage() {
                     const userData = { id: docSnapshot.id, ...docSnapshot.data() } as User;
                     setProfileUser(userData);
 
-                    // Fetch saved posts if they exist
                     if (userData.savedPosts && userData.savedPosts.length > 0) {
                         const savedPostsQuery = query(collection(db, "posts"), where(documentId(), "in", userData.savedPosts));
                         unsubSavedPosts = onSnapshot(savedPostsQuery, (postsSnapshot) => {
@@ -110,10 +109,14 @@ export default function ProfilePage() {
             });
 
             const postsRef = collection(db, "posts");
-            const postsQuery = query(postsRef, where("userId", "==", userId), orderBy("createdAt", "desc"));
+            const postsQuery = query(postsRef, where("userId", "==", userId));
             
             unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
                 let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                
+                // Sort client-side to avoid composite index
+                postsData.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+
                 if (currentUser?.role !== 'admin') {
                     postsData = postsData.filter(p => p.status !== 'banned');
                 }
@@ -121,6 +124,7 @@ export default function ProfilePage() {
                 setLoading(false);
             }, (error) => {
                 console.error("Error fetching posts:", error);
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch posts.' });
                 setUserPosts([]);
                 setLoading(false);
             });
@@ -230,7 +234,7 @@ export default function ProfilePage() {
     <div className="p-4 md:p-0">
         <Card className="overflow-hidden">
             <div className="h-32 md:h-48 bg-gradient-to-r from-primary/20 to-accent/20 relative group">
-                <Image src={profileUser.coverPhotoUrl || 'https://placehold.co/1500x500'} alt="Cover photo" layout="fill" objectFit="cover" />
+                {profileUser.coverPhotoUrl && <Image src={profileUser.coverPhotoUrl} alt="Cover photo" layout="fill" objectFit="cover" />}
                 {isOwnProfile && (
                   <>
                     <input type="file" accept="image/*" ref={coverInputRef} onChange={(e) => handleImageUpload(e, 'cover')} className="hidden" />
@@ -242,7 +246,7 @@ export default function ProfilePage() {
                 )}
             </div>
             <div className="p-4 relative">
-                <div className="absolute -top-16 left-6 group">
+                 <div className="absolute -top-12 md:-top-16 left-4 md:left-6 group">
                     <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-card shadow-md">
                         <AvatarImage src={profileUser.avatarUrl} data-ai-hint="person portrait" />
                         <AvatarFallback className="text-4xl">{profileUser.name.charAt(0)}</AvatarFallback>
@@ -260,7 +264,7 @@ export default function ProfilePage() {
                      )}
                 </div>
                 
-                <div className="flex justify-end items-center mb-4">
+                <div className="flex justify-end items-center mb-4 min-h-[40px]">
                    {!isOwnProfile && currentUser && (
                      <div className="flex gap-2">
                        <Button onClick={handleFollow} disabled={!currentUser}>
@@ -294,7 +298,7 @@ export default function ProfilePage() {
         </Card>
 
         <Tabs defaultValue="posts" className="w-full mt-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                 <TabsTrigger value="posts">Posts</TabsTrigger>
                 <TabsTrigger value="replies">Replies</TabsTrigger>
                 <TabsTrigger value="likes">Likes</TabsTrigger>
@@ -331,9 +335,9 @@ export default function ProfilePage() {
                 {isOwnProfile ? (
                     savedPosts.length > 0 ? (
                         savedPosts.map(post => {
-                            // Note: The user prop for saved posts should be the post's original author, not the current profile user.
-                            // This part of the logic needs to fetch the authors for the saved posts.
-                            // For now, we pass the profileUser, but a more robust solution would fetch the correct author.
+                            // Note: This needs a robust way to fetch the author of each saved post.
+                            // For now, we're passing a placeholder, which might not be correct.
+                            // A real implementation would fetch each post's author.
                             return <PostCard key={post.id} post={post} user={profileUser} />;
                         })
                     ) : (
@@ -355,3 +359,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
