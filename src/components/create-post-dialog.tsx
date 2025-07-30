@@ -6,7 +6,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog"
 import { useCreatePost } from "@/hooks/use-create-post";
 import CreatePost from "./create-post";
@@ -15,13 +14,15 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import type { Post } from "@/lib/types";
+import { useTranslation } from "@/hooks/use-translation";
 
 export default function CreatePostDialog() {
     const { isOpen, onClose } = useCreatePost();
     const { user } = useAuth();
     const { toast } = useToast();
+    const { t } = useTranslation();
     
-    const handleCreatePost = async (newPostData: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'>) => {
+    const handleCreatePost = async (newPostData: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'>) => {
         if (!user) {
           toast({ variant: 'destructive', title: "Not Authenticated", description: "You must be logged in to create a post."});
           return;
@@ -34,6 +35,8 @@ export default function CreatePostDialog() {
             createdAt: serverTimestamp(),
             likes: [],
             comments: [],
+            reports: [],
+            status: 'active',
           });
         } catch (error) {
            console.error("Error creating post:", error);
@@ -49,10 +52,12 @@ export default function CreatePostDialog() {
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Create a new post</DialogTitle>
+                    <DialogTitle>{t.createNewPost}</DialogTitle>
                 </DialogHeader>
                 <CreatePost user={user} onPostCreated={onClose} handleCreatePost={handleCreatePost} />
             </DialogContent>
         </Dialog>
     )
 }
+
+    

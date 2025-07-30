@@ -35,6 +35,7 @@ import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot } from '
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { useTranslation } from '@/hooks/use-translation';
 
 interface PostCardProps {
   post: Post;
@@ -43,6 +44,7 @@ interface PostCardProps {
 
 function ReportDialog({ post, currentUser, children }: { post: Post, currentUser: (User & import('firebase/auth').User) | null, children: React.ReactNode }) {
     const { toast } = useToast();
+    const { t } = useTranslation();
     const [reason, setReason] = useState("");
     const [isOpen, setIsOpen] = useState(false);
 
@@ -76,22 +78,22 @@ function ReportDialog({ post, currentUser, children }: { post: Post, currentUser
             <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Report Post</AlertDialogTitle>
+                    <AlertDialogTitle>{t.reportPost}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Please provide a reason for reporting this post. Your feedback is important for community safety.
+                        {t.reportDescription}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <Textarea
-                    placeholder="e.g., spam, inappropriate content, harassment..."
+                    placeholder={t.reportPlaceholder}
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     disabled={hasReported}
                 />
                 {hasReported && <p className="text-sm text-yellow-600">You have already reported this post.</p>}
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
                     <AlertDialogAction onClick={handleReportSubmit} disabled={!reason.trim() || hasReported}>
-                        Submit Report
+                        {t.submitReport}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -173,6 +175,7 @@ function CommentSection({ postId, currentUser }: { postId: string, currentUser: 
 export default function PostCard({ post: initialPost, user }: PostCardProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [post, setPost] = useState<Post>(initialPost);
   const [isCommentSectionOpen, setIsCommentSectionOpen] = useState(false);
   
@@ -370,7 +373,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
                       <>
                         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete}>
                             <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Delete Post</span>
+                            <span>{t.deletePost}</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                       </>
@@ -378,7 +381,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
                     <ReportDialog post={post} currentUser={currentUser}>
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                             <ShieldAlert className="mr-2 h-4 w-4" />
-                            <span>Report Post</span>
+                            <span>{t.reportPost}</span>
                         </DropdownMenuItem>
                     </ReportDialog>
                 </DropdownMenuContent>
@@ -401,7 +404,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
           </Button>
           <Button variant="ghost" className={cn("flex items-center gap-2 text-muted-foreground transition-colors", isSaved ? 'text-primary' : 'hover:text-primary')} onClick={handleSavePost} disabled={!currentUser}>
             <Bookmark className={cn("w-5 h-5", isSaved && 'fill-current')} />
-            <span>{isSaved ? 'Saved' : 'Save'}</span>
+            <span>{isSaved ? t.saved : t.save}</span>
           </Button>
         </div>
         {isCommentSectionOpen && <CommentSection postId={post.id} currentUser={currentUser} />}
@@ -409,3 +412,5 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     </Card>
   );
 }
+
+    

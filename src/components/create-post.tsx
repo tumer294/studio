@@ -12,11 +12,12 @@ import { Label } from "@/components/ui/label";
 import { TextIcon, ImageIcon, Link2Icon, Film, Loader2 } from "lucide-react";
 import { storage } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/hooks/use-translation';
 
 interface CreatePostProps {
   user: any; 
   onPostCreated: () => void;
-  handleCreatePost: (post: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'>) => Promise<void>;
+  handleCreatePost: (post: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'>) => Promise<void>;
 }
 
 export default function CreatePost({ user, onPostCreated, handleCreatePost }: CreatePostProps) {
@@ -26,6 +27,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,21 +69,16 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
         let finalMediaUrl = "";
         let postType: Post['type'] = activeTab;
 
-        if (file && activeTab === 'image') {
+        if (file) {
             postType = 'image';
             const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}-${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
-        } else if (mediaUrl.trim()) {
-            finalMediaUrl = mediaUrl; // This was missing
-            if (activeTab === 'video') postType = 'video';
-            if (activeTab === 'link') postType = 'link';
         } else {
-            postType = 'text';
+             finalMediaUrl = mediaUrl;
         }
 
-
-        const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments'> = {
+        const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'> = {
             content: postContent,
             type: postType,
             mediaUrl: finalMediaUrl,
@@ -129,7 +126,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
           </Avatar>
           <div className="w-full">
             <Textarea
-              placeholder="What's on your mind?"
+              placeholder={t.whatsOnYourMind}
               className="mb-2 min-h-[80px] text-base focus:ring-0 border-0 focus-visible:ring-offset-0 focus-visible:ring-0"
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
@@ -139,7 +136,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
         <div>
            {(activeTab === 'image') && (
               <div className="mt-2">
-                 <Label htmlFor="image-upload" className="text-sm font-medium text-muted-foreground">Select an image to upload</Label>
+                 <Label htmlFor="image-upload" className="text-sm font-medium text-muted-foreground">{t.selectImageToUpload}</Label>
                 <Input 
                   id="image-upload"
                   type="file" 
@@ -152,12 +149,12 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
             )}
             {(activeTab === 'video') && (
                <div className="mt-2">
-                 <Input type="url" placeholder="Enter video URL (e.g., YouTube, .mp4)" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
+                 <Input type="url" placeholder={t.videoUrlPlaceholder} value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
               </div>
             )}
             {(activeTab === 'link') && (
                <div className="mt-2">
-                 <Input type="url" placeholder="Enter link to share" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
+                 <Input type="url" placeholder={t.linkUrlPlaceholder} value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
               </div>
             )}
         </div>
@@ -172,10 +169,12 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
            <div className="flex items-center gap-2">
             <Button onClick={handlePost} disabled={isPostButtonDisabled}>
               {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isUploading ? 'Posting...' : 'Post'}
+              {isUploading ? t.posting : t.post}
             </Button>
           </div>
         </div>
     </div>
   );
 }
+
+    

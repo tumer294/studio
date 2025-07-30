@@ -51,3 +51,5 @@ export interface Post {
   reports?: Report[];
   status?: 'active' | 'banned';
 }
+
+    

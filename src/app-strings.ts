@@ -26,6 +26,21 @@ const en = {
     colorTheme: 'Color Theme',
     language: 'Language',
     logout: 'Logout',
+    whatsOnYourMind: "What's on your mind?",
+    selectImageToUpload: 'Select an image to upload',
+    post: 'Post',
+    posting: 'Posting...',
+    videoUrlPlaceholder: 'Enter video URL (e.g., YouTube, .mp4)',
+    linkUrlPlaceholder: 'Enter link to share',
+    save: 'Save',
+    saved: 'Saved',
+    reportPost: 'Report Post',
+    reportDescription: 'Please provide a reason for reporting this post. Your feedback is important for community safety.',
+    reportPlaceholder: 'e.g., spam, inappropriate content, harassment...',
+    cancel: 'Cancel',
+    submitReport: 'Submit Report',
+    deletePost: 'Delete Post',
+    createNewPost: 'Create a new post',
 };
 
 const tr: typeof en = {
@@ -40,6 +55,21 @@ const tr: typeof en = {
     colorTheme: 'Renk Teması',
     language: 'Dil',
     logout: 'Çıkış Yap',
+    whatsOnYourMind: 'Aklında ne var?',
+    selectImageToUpload: 'Yüklenecek bir resim seçin',
+    post: 'Gönder',
+    posting: 'Gönderiliyor...',
+    videoUrlPlaceholder: 'Video URL’si girin (örn. YouTube, .mp4)',
+    linkUrlPlaceholder: 'Paylaşılacak bağlantıyı girin',
+    save: 'Kaydet',
+    saved: 'Kaydedildi',
+    reportPost: 'Gönderiyi Bildir',
+    reportDescription: 'Lütfen bu gönderiyi bildirmek için bir neden belirtin. Geri bildiriminiz topluluk güvenliği için önemlidir.',
+    reportPlaceholder: 'örn. spam, uygunsuz içerik, taciz...',
+    cancel: 'İptal',
+    submitReport: 'Raporu Gönder',
+    deletePost: 'Gönderiyi Sil',
+    createNewPost: 'Yeni bir gönderi oluştur',
 };
 
 const es: typeof en = {
@@ -54,6 +84,21 @@ const es: typeof en = {
     colorTheme: 'Tema de color',
     language: 'Idioma',
     logout: 'Cerrar Sesión',
+    whatsOnYourMind: '¿Qué estás pensando?',
+    selectImageToUpload: 'Selecciona una imagen para subir',
+    post: 'Publicar',
+    posting: 'Publicando...',
+    videoUrlPlaceholder: 'Ingresa la URL del video (ej. YouTube, .mp4)',
+    linkUrlPlaceholder: 'Ingresa el enlace para compartir',
+    save: 'Guardar',
+    saved: 'Guardado',
+    reportPost: 'Reportar Publicación',
+    reportDescription: 'Por favor, proporciona una razón para reportar esta publicación. Tus comentarios son importantes para la seguridad de la comunidad.',
+    reportPlaceholder: 'ej. spam, contenido inapropiado, acoso...',
+    cancel: 'Cancelar',
+    submitReport: 'Enviar Reporte',
+    deletePost: 'Eliminar Publicación',
+    createNewPost: 'Crear una nueva publicación',
 };
 
 const fr: typeof en = {
@@ -68,6 +113,21 @@ const fr: typeof en = {
     colorTheme: 'Thème de couleur',
     language: 'Langue',
     logout: 'Se déconnecter',
+    whatsOnYourMind: 'À quoi pensez-vous ?',
+    selectImageToUpload: 'Sélectionnez une image à télécharger',
+    post: 'Publier',
+    posting: 'Publication...',
+    videoUrlPlaceholder: 'Entrez l\'URL de la vidéo (par ex. YouTube, .mp4)',
+    linkUrlPlaceholder: 'Entrez le lien à partager',
+    save: 'Enregistrer',
+    saved: 'Enregistré',
+    reportPost: 'Signaler la publication',
+    reportDescription: 'Veuillez fournir une raison pour signaler cette publication. Vos commentaires sont importants pour la sécurité de la communauté.',
+    reportPlaceholder: 'par ex. spam, contenu inapproprié, harcèlement...',
+    cancel: 'Annuler',
+    submitReport: 'Soumettre le signalement',
+    deletePost: 'Supprimer la publication',
+    createNewPost: 'Créer une nouvelle publication',
 };
 
 const ar: typeof en = {
@@ -82,6 +142,21 @@ const ar: typeof en = {
     colorTheme: 'سمة اللون',
     language: 'اللغة',
     logout: 'تسجيل الخروج',
+    whatsOnYourMind: 'بماذا تفكر؟',
+    selectImageToUpload: 'اختر صورة للتحميل',
+    post: 'نشر',
+    posting: 'جارٍ النشر...',
+    videoUrlPlaceholder: 'أدخل رابط الفيديو (مثل يوتيوب، .mp4)',
+    linkUrlPlaceholder: 'أدخل الرابط للمشاركة',
+    save: 'حفظ',
+    saved: 'محفوظ',
+    reportPost: 'الإبلاغ عن المنشور',
+    reportDescription: 'يرجى تقديم سبب للإبلاغ عن هذا المنشور. ملاحظاتك مهمة لسلامة المجتمع.',
+    reportPlaceholder: 'مثال: بريد مزعج، محتوى غير لائق، مضايقة...',
+    cancel: 'إلغاء',
+    submitReport: 'إرسال البلاغ',
+    deletePost: 'حذف المنشور',
+    createNewPost: 'إنشاء منشور جديد',
 };
 
 const hi: typeof en = {
@@ -96,6 +171,21 @@ const hi: typeof en = {
     colorTheme: 'रंग थीम',
     language: 'भाषा',
     logout: 'लॉग आउट',
+    whatsOnYourMind: 'आपके मन में क्या है?',
+    selectImageToUpload: 'अपलोड करने के लिए एक छवि चुनें',
+    post: 'पोस्ट करें',
+    posting: 'पोस्ट किया जा रहा है...',
+    videoUrlPlaceholder: 'वीडियो यूआरएल दर्ज करें (उदा. यूट्यूब, .mp4)',
+    linkUrlPlaceholder: 'साझा करने के लिए लिंक दर्ज करें',
+    save: 'सहेजें',
+    saved: 'सहेजा गया',
+    reportPost: 'पोस्ट की रिपोर्ट करें',
+    reportDescription: 'कृपया इस पोस्ट की रिपोर्ट करने का कारण बताएं। आपकी प्रतिक्रिया समुदाय की सुरक्षा के लिए महत्वपूर्ण है।',
+    reportPlaceholder: 'उदा. स्पैम, अनुचित सामग्री, उत्पीड़न...',
+    cancel: 'रद्द करें',
+    submitReport: 'रिपोर्ट सबमिट करें',
+    deletePost: 'पोस्ट हटाएं',
+    createNewPost: 'एक नई पोस्ट बनाएं',
 };
 
 const bn: typeof en = {
@@ -110,6 +200,21 @@ const bn: typeof en = {
     colorTheme: 'রঙের থিম',
     language: 'ভাষা',
     logout: 'লগ আউট',
+    whatsOnYourMind: 'আপনার মনে কি আছে?',
+    selectImageToUpload: 'আপলোড করার জন্য একটি ছবি নির্বাচন করুন',
+    post: 'পোস্ট করুন',
+    posting: 'পোস্ট করা হচ্ছে...',
+    videoUrlPlaceholder: 'ভিডিও ইউআরএল লিখুন (যেমন ইউটিউব, .mp4)',
+    linkUrlPlaceholder: 'শেয়ার করার জন্য লিঙ্ক লিখুন',
+    save: 'সংরক্ষণ',
+    saved: 'সংরক্ষিত',
+    reportPost: 'পোস্ট রিপোর্ট করুন',
+    reportDescription: 'এই পোস্টটি রিপোর্ট করার একটি কারণ প্রদান করুন। আপনার মতামত সম্প্রদায়ের সুরক্ষার জন্য গুরুত্বপূর্ণ।',
+    reportPlaceholder: 'যেমন স্প্যাম, অনুপযুক্ত বিষয়বস্তু, হয়রানি...',
+    cancel: 'বাতিল করুন',
+    submitReport: 'রিপোর্ট জমা দিন',
+    deletePost: 'পোস্ট মুছুন',
+    createNewPost: 'একটি নতুন পোস্ট তৈরি করুন',
 };
 
 const ru: typeof en = {
@@ -124,6 +229,21 @@ const ru: typeof en = {
     colorTheme: 'Цветовая тема',
     language: 'Язык',
     logout: 'Выйти',
+    whatsOnYourMind: 'О чем вы думаете?',
+    selectImageToUpload: 'Выберите изображение для загрузки',
+    post: 'Опубликовать',
+    posting: 'Публикация...',
+    videoUrlPlaceholder: 'Введите URL видео (например, YouTube, .mp4)',
+    linkUrlPlaceholder: 'Введите ссылку, чтобы поделиться',
+    save: 'Сохранить',
+    saved: 'Сохранено',
+    reportPost: 'Пожаловаться на публикацию',
+    reportDescription: 'Пожалуйста, укажите причину жалобы на эту публикацию. Ваш отзыв важен для безопасности сообщества.',
+    reportPlaceholder: 'например, спам, неприемлемый контент, преследование...',
+    cancel: 'Отмена',
+    submitReport: 'Отправить жалобу',
+    deletePost: 'Удалить публикацию',
+    createNewPost: 'Создать новую публикацию',
 };
 
 const pt: typeof en = {
@@ -138,6 +258,21 @@ const pt: typeof en = {
     colorTheme: 'Tema de Cores',
     language: 'Idioma',
     logout: 'Sair',
+    whatsOnYourMind: 'No que você está pensando?',
+    selectImageToUpload: 'Selecione uma imagem para enviar',
+    post: 'Publicar',
+    posting: 'Publicando...',
+    videoUrlPlaceholder: 'Digite a URL do vídeo (por exemplo, YouTube, .mp4)',
+    linkUrlPlaceholder: 'Digite o link para compartilhar',
+    save: 'Salvar',
+    saved: 'Salvo',
+    reportPost: 'Denunciar Publicação',
+    reportDescription: 'Por favor, forneça um motivo para denunciar esta publicação. Seu feedback é importante para a segurança da comunidade.',
+    reportPlaceholder: 'por exemplo, spam, conteúdo impróprio, assédio...',
+    cancel: 'Cancelar',
+    submitReport: 'Enviar Denúncia',
+    deletePost: 'Excluir Publicação',
+    createNewPost: 'Criar uma nova publicação',
 };
 
 const id: typeof en = {
@@ -152,6 +287,21 @@ const id: typeof en = {
     colorTheme: 'Tema Warna',
     language: 'Bahasa',
     logout: 'Keluar',
+    whatsOnYourMind: 'Apa yang ada di pikiranmu?',
+    selectImageToUpload: 'Pilih gambar untuk diunggah',
+    post: 'Kirim',
+    posting: 'Mengirim...',
+    videoUrlPlaceholder: 'Masukkan URL video (misalnya, YouTube, .mp4)',
+    linkUrlPlaceholder: 'Masukkan tautan untuk dibagikan',
+    save: 'Simpan',
+    saved: 'Disimpan',
+    reportPost: 'Laporkan Postingan',
+    reportDescription: 'Harap berikan alasan untuk melaporkan postingan ini. Umpan balik Anda penting untuk keamanan komunitas.',
+    reportPlaceholder: 'misalnya, spam, konten tidak pantas, pelecehan...',
+    cancel: 'Batal',
+    submitReport: 'Kirim Laporan',
+    deletePost: 'Hapus Postingan',
+    createNewPost: 'Buat postingan baru',
 };
 
 
@@ -169,3 +319,5 @@ export const appStrings = {
 };
 
 export type AppStrings = typeof appStrings;
+
+    
