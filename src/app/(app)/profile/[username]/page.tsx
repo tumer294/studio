@@ -90,7 +90,6 @@ export default function ProfilePage() {
             const userDoc = userQuerySnapshot.docs[0];
             const userId = userDoc.id;
 
-            // Set up listener for the profile user document
             unsubProfile = onSnapshot(doc(db, "users", userId), (docSnapshot) => {
                 if (docSnapshot.exists()) {
                     const userData = { id: docSnapshot.id, ...docSnapshot.data() } as User;
@@ -100,17 +99,16 @@ export default function ProfilePage() {
                 }
             });
 
-            // Fetch user's own posts
             const postsRef = collection(db, "posts");
-            const postsQuery = query(postsRef, where("userId", "==", userId));
+            const postsQuery = query(postsRef, where("userId", "==", userId), orderBy("createdAt", "desc"));
+            
             unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
                 let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                postsData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-                 if (currentUser?.role !== 'admin') {
+                if (currentUser?.role !== 'admin') {
                     postsData = postsData.filter(p => p.status !== 'banned');
                 }
                 setUserPosts(postsData);
-                setLoading(false); // End loading only after posts are fetched
+                setLoading(false);
             }, (error) => {
                  console.error("Error fetching user posts:", error);
                  setLoading(false);
@@ -147,61 +145,65 @@ export default function ProfilePage() {
 
   // Effect for fetching saved posts and their authors
   useEffect(() => {
-    let unsubSavedPosts: (() => void) | undefined;
-    
-    if (profileUser && currentUser && profileUser.id === currentUser.uid && (profileUser.savedPosts?.length || 0) > 0) {
-        const savedPostsQuery = query(collection(db, "posts"), where(documentId(), "in", profileUser.savedPosts));
-        
-        unsubSavedPosts = onSnapshot(savedPostsQuery, async (postsSnapshot) => {
-            const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-            
-            const authorIds = [...new Set(postsData.map(post => post.userId))];
-            if (authorIds.length === 0) {
-                 setSavedPostsWithUsers([]);
-                 return;
-            }
-            
-            const authorDocs = await Promise.all(authorIds.map(id => getDocs(query(collection(db, 'users'), where('uid', '==', id)))));
-            
-            const authors: Record<string, User> = {};
-            authorDocs.forEach(snapshot => {
-                if (!snapshot.empty) {
-                    const user = snapshot.docs[0].data() as User;
-                    authors[user.uid] = { ...user, id: snapshot.docs[0].id };
-                }
-            });
+    if (!profileUser || !currentUser || profileUser.id !== currentUser.uid || !profileUser.savedPosts || profileUser.savedPosts.length === 0) {
+        setSavedPostsWithUsers([]);
+        return;
+    }
 
-            const populatedPosts = postsData.map(post => ({
-                ...post,
-                author: authors[post.userId]
-            })).filter(p => p.author); // Filter out posts where author couldn't be found
-             
-            setSavedPostsWithUsers(populatedPosts);
+    const fetchSavedPosts = async () => {
+        const savedPostsIds = profileUser.savedPosts || [];
+        if (savedPostsIds.length === 0) return;
+
+        const postsRef = collection(db, 'posts');
+        const savedPostsQuery = query(postsRef, where(documentId(), 'in', savedPostsIds));
+        const postsSnapshot = await getDocs(savedPostsQuery);
+        const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+
+        const authorIds = [...new Set(postsData.map(post => post.userId))];
+        if (authorIds.length === 0) {
+            setSavedPostsWithUsers([]);
+            return;
+        }
+
+        const usersRef = collection(db, 'users');
+        const authorsQuery = query(usersRef, where('uid', 'in', authorIds));
+        const authorsSnapshot = await getDocs(authorsQuery);
+        
+        const authors: Record<string, User> = {};
+        authorsSnapshot.forEach(doc => {
+            const user = { id: doc.id, ...doc.data() } as User;
+            authors[user.uid] = user;
         });
 
-    } else {
-        setSavedPostsWithUsers([]);
-    }
+        const populatedPosts = postsData
+            .map(post => ({
+                ...post,
+                author: authors[post.userId]
+            }))
+            .filter(p => p.author) // Filter out posts where author couldn't be found
+            .sort((a, b) => savedPostsIds.indexOf(b.id) - savedPostsIds.indexOf(a.id)); // Keep original save order
 
-    return () => {
-        if (unsubSavedPosts) unsubSavedPosts();
-    }
+        setSavedPostsWithUsers(populatedPosts);
+    };
+
+    fetchSavedPosts();
+
   }, [profileUser, currentUser]);
 
 
   const handleFollow = async () => {
-    if (!currentUser || !profileUser || currentUser.uid === profileUser.id) return;
+    if (!currentUser || !profileUser || currentUser.uid === profileUser.uid) return;
 
     const currentUserRef = doc(db, "users", currentUser.uid);
-    const profileUserRef = doc(db, "users", profileUser.id);
+    const profileUserRef = doc(db, "users", profileUser.uid);
 
     try {
         if (isFollowing) {
-            await updateDoc(currentUserRef, { following: arrayRemove(profileUser.id) });
+            await updateDoc(currentUserRef, { following: arrayRemove(profileUser.uid) });
             await updateDoc(profileUserRef, { followers: arrayRemove(currentUser.uid) });
             toast({ title: 'Unfollowed', description: `You are no longer following ${profileUser.name}.` });
         } else {
-            await updateDoc(currentUserRef, { following: arrayUnion(profileUser.id) });
+            await updateDoc(currentUserRef, { following: arrayUnion(profileUser.uid) });
             await updateDoc(profileUserRef, { followers: arrayUnion(currentUser.uid) });
             toast({ title: 'Followed', description: `You are now following ${profileUser.name}.` });
         }
@@ -223,8 +225,8 @@ export default function ProfilePage() {
     setIsUploading(type);
     
     const filePath = type === 'avatar' 
-      ? `avatars/${profileUser.id}/${Date.now()}-${file.name}` 
-      : `covers/${profileUser.id}/${Date.now()}-${file.name}`;
+      ? `avatars/${profileUser.uid}/${Date.now()}-${file.name}` 
+      : `covers/${profileUser.uid}/${Date.now()}-${file.name}`;
       
     const storageRef = ref(storage, filePath);
     
@@ -232,15 +234,13 @@ export default function ProfilePage() {
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      const userDocRef = doc(db, "users", profileUser.id);
+      const userDocRef = doc(db, "users", profileUser.uid);
       if (type === 'avatar') {
         await updateDoc(userDocRef, { avatarUrl: downloadURL });
-        // Manually update state to avoid race condition with onSnapshot
         setProfileUser(prev => prev ? { ...prev, avatarUrl: downloadURL } : null);
         toast({ title: 'Avatar Updated', description: 'Your new avatar has been saved.' });
       } else {
         await updateDoc(userDocRef, { coverPhotoUrl: downloadURL });
-        // Manually update state to avoid race condition with onSnapshot
         setProfileUser(prev => prev ? { ...prev, coverPhotoUrl: downloadURL } : null);
         toast({ title: 'Cover Photo Updated', description: 'Your new cover photo has been saved.' });
       }
@@ -249,6 +249,9 @@ export default function ProfilePage() {
       toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload your image.' });
     } finally {
       setIsUploading(null);
+      if (e.target) {
+          e.target.value = '';
+      }
     }
   }
 
@@ -260,7 +263,7 @@ export default function ProfilePage() {
     notFound();
   }
   
-  const isOwnProfile = currentUser?.uid === profileUser.id;
+  const isOwnProfile = currentUser?.uid === profileUser.uid;
 
   return (
     <div className="p-4 md:p-0">
@@ -270,7 +273,7 @@ export default function ProfilePage() {
                 {isOwnProfile && (
                   <>
                     <input type="file" accept="image/*" ref={coverInputRef} onChange={(e) => handleImageUpload(e, 'cover')} className="hidden" />
-                    <Button size="sm" variant="outline" className="absolute bottom-2 right-2 bg-background/50 backdrop-blur-sm" onClick={() => coverInputRef.current?.click()} disabled={isUploading === 'cover'}>
+                    <Button size="sm" variant="outline" className="absolute bottom-2 right-2 bg-background/50 backdrop-blur-sm" onClick={() => coverInputRef.current?.click()} disabled={!!isUploading}>
                         {isUploading === 'cover' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />} 
                         {isUploading === 'cover' ? 'Uploading...' : 'Cover Photo'}
                     </Button>
@@ -388,5 +391,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
