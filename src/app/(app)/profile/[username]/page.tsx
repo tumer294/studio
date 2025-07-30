@@ -96,28 +96,28 @@ export default function ProfilePage() {
                 } else {
                     setProfileUser(null);
                 }
+                // We will set loading to false in other effects
             });
 
         } catch (error) {
             console.error("Error fetching profile user:", error);
             setProfileUser(null);
-        } finally {
-            // We will set loading to false in other effects
+            setLoading(false);
         }
     };
     
     if (authLoading) return;
+
     if (!usernameFromUrl) {
       setLoading(false);
       return;
     }
-    
+
     if (usernameFromUrl === 'me') {
         if (currentUser?.username) {
             router.replace(`/profile/${currentUser.username}`);
         } else if (!authLoading) {
-            // This case might happen briefly, or if a user has no username.
-            // Let the loading skeleton show until redirection or data is found.
+             setLoading(false);
         }
     } else {
         fetchProfile(usernameFromUrl);
@@ -126,79 +126,82 @@ export default function ProfilePage() {
     return () => {
       if (unsubProfile) unsubProfile();
     };
-  }, [usernameFromUrl, currentUser, authLoading, router]);
+  }, [usernameFromUrl, currentUser?.username, authLoading, router]);
 
   // Effect for fetching user's own posts
   useEffect(() => {
-      if (!profileUser) return;
+      if (!profileUser?.uid) return;
 
-      const fetchPosts = async () => {
-        setLoading(true);
-        const postsRef = collection(db, "posts");
-        const postsQuery = query(postsRef, where("userId", "==", profileUser.uid));
-        
-        const unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
-            let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-            
-            if (currentUser?.role !== 'admin' && currentUser?.uid !== profileUser.uid) {
-                postsData = postsData.filter(p => p.status !== 'banned');
-            }
-            
-            postsData.sort((a, b) => {
-              const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-              const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-              return dateB - dateA;
-            });
+      const postsRef = collection(db, "posts");
+      const postsQuery = query(postsRef, where("userId", "==", profileUser.uid));
+      
+      const unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
+          let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+          
+          if (currentUser?.role !== 'admin' && currentUser?.uid !== profileUser.uid) {
+              postsData = postsData.filter(p => p.status !== 'banned');
+          }
+          
+          postsData.sort((a, b) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+            return dateB - dateA;
+          });
 
-            setUserPosts(postsData);
-            setLoading(false); 
-        }, (error) => {
-             console.error("Error fetching user posts:", error);
-             setLoading(false);
-        });
-        return unsubPosts;
-      };
+          setUserPosts(postsData);
+          setLoading(false);
+      }, (error) => {
+            console.error("Error fetching user posts:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user posts. The query may require an index.' });
+            setLoading(false);
+      });
+      return () => unsubPosts();
 
-      const unsubscribe = fetchPosts();
-
-      return () => {
-        unsubscribe.then(unsub => unsub && unsub());
-      };
-  }, [profileUser, currentUser]);
+  }, [profileUser?.uid, currentUser, toast]);
 
 
   // Effect for fetching saved posts and their authors
   useEffect(() => {
-    if (!profileUser || !currentUser || profileUser.id !== currentUser.uid || !profileUser.savedPosts || profileUser.savedPosts.length === 0) {
+    if (!profileUser || !currentUser || profileUser.uid !== currentUser.uid || !profileUser.savedPosts || profileUser.savedPosts.length === 0) {
         setSavedPostsWithUsers([]);
         return;
     }
 
     const fetchSavedPosts = async () => {
-        const savedPostsIds = profileUser.savedPosts || [];
+        const savedPostsIds = [...profileUser.savedPosts].reverse(); 
         if (savedPostsIds.length === 0) return;
 
         try {
-            const postsRef = collection(db, 'posts');
-            const savedPostsQuery = query(postsRef, where(documentId(), 'in', savedPostsIds));
-            const postsSnapshot = await getDocs(savedPostsQuery);
-            const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+            const postPromises = [];
+            for (let i = 0; i < savedPostsIds.length; i += 10) {
+                const batchIds = savedPostsIds.slice(i, i + 10);
+                const postsRef = collection(db, 'posts');
+                const savedPostsQuery = query(postsRef, where(documentId(), 'in', batchIds));
+                postPromises.push(getDocs(savedPostsQuery));
+            }
+            const postSnapshots = await Promise.all(postPromises);
+            const postsData = postSnapshots.flatMap(snap => snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post)));
 
             const authorIds = [...new Set(postsData.map(post => post.userId))];
             if (authorIds.length === 0) {
                 setSavedPostsWithUsers([]);
                 return;
             }
-
-            const usersRef = collection(db, 'users');
-            const authorsQuery = query(usersRef, where('uid', 'in', authorIds.slice(0, 10)));
-            const authorsSnapshot = await getDocs(authorsQuery);
             
+            const authorPromises = [];
+            for (let i = 0; i < authorIds.length; i += 10) {
+                const batchIds = authorIds.slice(i, i + 10);
+                const usersRef = collection(db, 'users');
+                const authorsQuery = query(usersRef, where('uid', 'in', batchIds));
+                authorPromises.push(getDocs(authorsQuery));
+            }
+
+            const authorSnapshots = await Promise.all(authorPromises);
             const authors: Record<string, User> = {};
-            authorsSnapshot.forEach(doc => {
-                const user = { id: doc.id, ...doc.data() } as User;
-                authors[user.uid] = user;
-            });
+            authorSnapshots.forEach(snap => snap.forEach(doc => {
+                 const user = { id: doc.id, ...doc.data() } as User;
+                 authors[user.uid] = user;
+            }));
             
             const populatedPosts = postsData
                 .map(post => ({
@@ -206,17 +209,18 @@ export default function ProfilePage() {
                     author: authors[post.userId]
                 }))
                 .filter(p => p.author)
-                .sort((a, b) => savedPostsIds.indexOf(b.id) - savedPostsIds.indexOf(a.id)); 
+                .sort((a, b) => savedPostsIds.indexOf(a.id) - savedPostsIds.indexOf(b.id)); 
 
             setSavedPostsWithUsers(populatedPosts);
         } catch(error) {
             console.error("Error fetching saved posts:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch saved posts.' });
         }
     };
 
     fetchSavedPosts();
 
-  }, [profileUser, currentUser]);
+  }, [profileUser, currentUser, toast]);
 
 
   const handleFollow = async () => {
@@ -267,7 +271,7 @@ export default function ProfilePage() {
       
       await updateDoc(userDocRef, updateData);
 
-      setProfileUser(prevUser => {
+      setProfileUser((prevUser) => {
         if (!prevUser) return null;
         return { ...prevUser, ...updateData };
       });
@@ -287,10 +291,6 @@ export default function ProfilePage() {
 
   if (loading || authLoading || !profileUser) {
       return <ProfileSkeleton />;
-  }
-  
-  if (!profileUser && !loading) {
-    notFound();
   }
   
   const isOwnProfile = currentUser?.uid === profileUser.uid;
@@ -321,8 +321,7 @@ export default function ProfilePage() {
                          <input type="file" accept="image/*" ref={avatarInputRef} onChange={(e) => handleImageUpload(e, 'avatar')} className="hidden" />
                          <div 
                            className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                           onClick={() => avatarInputRef.current?.click()}
-                         >
+                           onClick={() => avatarInputRef.current?.click()}>
                            {isUploading === 'avatar' ? <Loader2 className="text-white w-8 h-8 animate-spin" /> : <Camera className="text-white w-8 h-8"/>}
                          </div>
                        </>
