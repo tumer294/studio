@@ -4,9 +4,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAuth } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { app, db } from "@/lib/firebase"; // Import app and db
+import { signInWithEmailAndPassword, signInWithRedirect, GoogleAuthProvider, getAuth } from "firebase/auth";
+import { app } from "@/lib/firebase"; 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -46,42 +45,14 @@ export default function LoginPage() {
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // Check if user exists in Firestore, if not, create a document
-      const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        const username = user.email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || `user${Date.now()}`;
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          name: user.displayName,
-          username: username,
-          email: user.email,
-          bio: 'Welcome to UmmahConnect!',
-          avatarUrl: user.photoURL || '',
-          coverPhotoUrl: '',
-          followers: [],
-          following: [],
-          createdAt: serverTimestamp(),
-          role: 'user',
-          theme: 'light',
-          language: 'en',
-        });
-      }
-
-      toast({ title: "Success", description: "Logged in successfully with Google! Redirecting..." });
-      router.push('/');
+      await signInWithRedirect(auth, provider);
     } catch (error: any) {
       console.error("Google Login Error:", error);
       toast({
         variant: "destructive",
         title: "Google Login Failed",
-        description: error.code === 'auth/popup-closed-by-user' ? 'Login cancelled.' : "Could not log in with Google. Please try again.",
+        description: "Could not log in with Google. Please try again.",
       });
-    } finally {
       setIsGoogleLoading(false);
     }
   };
@@ -124,7 +95,7 @@ export default function LoginPage() {
             </div>
           </div>
           <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={isLoading || isGoogleLoading}>
-             {isGoogleLoading ? 'Logging in...' : 'Login with Google'}
+             {isGoogleLoading ? 'Redirecting to Google...' : 'Login with Google'}
           </Button>
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
@@ -137,5 +108,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

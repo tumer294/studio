@@ -9,6 +9,9 @@ import AppSidebar from "@/components/app-sidebar";
 import MobileBottomNav from "@/components/mobile-bottom-nav";
 import MobileHeader from "@/components/mobile-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getRedirectResult, GoogleAuthProvider } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 function AppLoadingSkeleton() {
     return (
@@ -48,6 +51,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.replace('/login');
     }
   }, [user, loading, router]);
+
+  React.useEffect(() => {
+    const handleRedirectResult = async () => {
+        try {
+            const result = await getRedirectResult(auth);
+            if (result && result.user) {
+                const user = result.user;
+                const userDocRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (!userDoc.exists()) {
+                    const username = user.email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || `user${Date.now()}`;
+                    await setDoc(userDocRef, {
+                        uid: user.uid,
+                        name: user.displayName,
+                        username: username,
+                        email: user.email,
+                        bio: 'Welcome to UmmahConnect!',
+                        avatarUrl: user.photoURL || '',
+                        coverPhotoUrl: '',
+                        followers: [],
+                        following: [],
+                        createdAt: serverTimestamp(),
+                        role: 'user',
+                        theme: 'light',
+                        language: 'en',
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Error handling redirect result:", error);
+        }
+    };
+    handleRedirectResult();
+  }, []);
 
 
   // While authentication is in progress, always display a loading skeleton.

@@ -4,8 +4,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider, getAuth } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore"; 
+import { createUserWithEmailAndPassword, updateProfile, signInWithRedirect, GoogleAuthProvider, getAuth } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore"; 
 import { app, db } from "@/lib/firebase"; // import app
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +50,7 @@ export default function SignupPage() {
         coverPhotoUrl: '',
         followers: [],
         following: [],
-        createdAt: serverTimestamp(),
+        createdAt: new Date(),
         role: email === 'admin@example.com' ? 'admin' : 'user',
         theme: 'light',
         language: 'en',
@@ -75,42 +75,15 @@ export default function SignupPage() {
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-         const username = user.email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || `user${Date.now()}`;
-         await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          name: user.displayName,
-          username: username,
-          email: user.email,
-          bio: 'Welcome to UmmahConnect!',
-          avatarUrl: user.photoURL || '',
-          coverPhotoUrl: '',
-          followers: [],
-          following: [],
-          createdAt: serverTimestamp(),
-          role: 'user',
-          theme: 'light',
-          language: 'en',
-        });
-      }
-
-      toast({ title: "Success", description: "Signed up successfully with Google!" });
-      router.push('/');
+        await signInWithRedirect(auth, provider);
     } catch (error: any) {
-      console.error("Google Signup Error:", error);
-      toast({
-        variant: "destructive",
-        title: "Google Signup Failed",
-        description: "Could not sign up with Google. Please ensure it's enabled in your Firebase project and try again.",
-      });
-    } finally {
-      setIsGoogleLoading(false);
+        console.error("Google Signup Error:", error);
+        toast({
+            variant: "destructive",
+            title: "Google Signup Failed",
+            description: "Could not sign up with Google. Please try again.",
+        });
+        setIsGoogleLoading(false);
     }
   };
 
@@ -157,7 +130,7 @@ export default function SignupPage() {
             </div>
           </div>
            <Button variant="outline" className="w-full" onClick={handleGoogleSignup} disabled={isLoading || isGoogleLoading}>
-              {isGoogleLoading ? 'Signing up...' : 'Sign up with Google'}
+              {isGoogleLoading ? 'Redirecting to Google...' : 'Sign up with Google'}
             </Button>
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
@@ -170,5 +143,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    
