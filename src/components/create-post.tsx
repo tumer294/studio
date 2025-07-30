@@ -81,7 +81,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
             const storageRef = ref(storage, storagePath);
             const snapshot = await uploadBytes(storageRef, file);
             finalMediaUrl = await getDownloadURL(snapshot.ref);
-        } else {
+        } else if (activeTab === 'link') {
              finalMediaUrl = mediaUrl;
         }
 
@@ -90,7 +90,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
             type: postType,
             mediaUrl: finalMediaUrl,
         };
-
+        
         await handleCreatePost(newPost);
         
         toast({ title: 'Success', description: 'Your post has been published.' });
@@ -107,8 +107,8 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
   
   const TABS = [
       { id: 'text', icon: TextIcon, label: 'Text' },
-      { id: 'image', icon: ImageIcon, label: 'Image' },
-      { id: 'video', icon: Film, label: 'Video' },
+      { id: 'image', icon: ImageIcon, label: t.selectImageToUpload },
+      { id: 'video', icon: Film, label: t.selectVideoToUpload },
       { id: 'link', icon: Link2Icon, label: 'Link' },
   ] as const;
   
@@ -121,7 +121,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
       setActiveTab(tabId);
   }
 
-  const isPostButtonDisabled = (postContent.trim() === "" && !file && mediaUrl.trim() === "") || isUploading;
+  const isPostButtonDisabled = (postContent.trim() === "" && !file && (activeTab !== 'link' || mediaUrl.trim() === "")) || isUploading;
 
 
   return (
@@ -191,5 +191,3 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
     </div>
   );
 }
-
-    
