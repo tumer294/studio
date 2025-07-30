@@ -48,33 +48,37 @@ export default function FeedPage() {
         return;
     };
 
+    // Simplified query to avoid composite index requirement.
+    // We will filter banned posts on the client side.
     const q = query(
         collection(db, "posts"),
-        where("status", "!=", "banned"),
-        orderBy("status"), // This is a trick to make the where clause work with orderBy
         orderBy("createdAt", "desc")
     );
     
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-        const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+        // Filter out banned posts on the client
+        const postsData = querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Post))
+            .filter(post => post.status !== 'banned');
+            
         setPosts(postsData);
 
-        // Get all unique user IDs from the posts
-        const userIds = [...new Set(postsData.map(p => p.userId))];
+        // Get all unique user IDs from the posts that we don't have user data for
+        const newUserIds = [...new Set(postsData.map(p => p.userId).filter(id => !users[id]))];
 
-        // Fetch user data for all posts if there are any user IDs
-        if (userIds.length > 0) {
+        // Fetch user data for new user IDs
+        if (newUserIds.length > 0) {
             const usersRef = collection(db, "users");
-            const userDocsPromises = userIds.map(id => getDoc(doc(usersRef, id)));
+            const userDocsPromises = newUserIds.map(id => getDoc(doc(usersRef, id)));
             const userDocs = await Promise.all(userDocsPromises);
 
-            const usersData: Record<string, User> = {};
+            const newUsersData: Record<string, User> = {};
             userDocs.forEach(userDoc => {
                 if (userDoc.exists()) {
-                    usersData[userDoc.id] = { id: userDoc.id, ...userDoc.data() } as User;
+                    newUsersData[userDoc.id] = { id: userDoc.id, ...userDoc.data() } as User;
                 }
             });
-            setUsers(prevUsers => ({ ...prevUsers, ...usersData }));
+            setUsers(prevUsers => ({ ...prevUsers, ...newUsersData }));
         }
         setDataLoading(false);
 

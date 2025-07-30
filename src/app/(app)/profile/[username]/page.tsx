@@ -82,30 +82,39 @@ export default function ProfilePage() {
                 });
 
                 const postsRef = collection(db, "posts");
-                // Only show non-banned posts on profile pages, unless it's the admin viewing
-                const postStatusQuery = currentUser?.role === 'admin' 
-                    ? where("status", "in", ["active", "banned", null])
-                    : where("status", "!=", "banned");
-
-                const postsQuery = query(
+                
+                // Base query for user's posts
+                let postsQuery = query(
                     postsRef,
-                    where("userId", "==", userDoc.id),
-                    postStatusQuery,
-                    orderBy("createdAt", "desc")
+                    where("userId", "==", userDoc.id)
                 );
                 
+                // Add sorting and filtering logic
+                // Admins can see banned posts, others can't.
+                if (currentUser?.role !== 'admin') {
+                   postsQuery = query(postsQuery, where("status", "!=", "banned"));
+                }
+                postsQuery = query(postsQuery, orderBy("createdAt", "desc"));
+                
+
                 unsubPosts = onSnapshot(postsQuery, (postsSnapshot) => {
-                    const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                    let postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                    // Client-side filter as a fallback for non-admin users if the query somehow includes banned posts.
+                    if (currentUser?.role !== 'admin') {
+                        postsData = postsData.filter(p => p.status !== 'banned');
+                    }
                     setUserPosts(postsData);
                 }, (error) => {
                   console.warn("Firestore query with orderBy failed, likely missing index. Fetching and sorting on client.", error);
-                  const postsQueryWithoutOrder = query(postsRef, where("userId", "==", userDoc.id), postStatusQuery);
-                  getDocs(postsQueryWithoutOrder).then(postsSnapshotFallback => {
+                  // Fallback query without sorting by createdAt to avoid index error
+                  let fallbackQuery = query(postsRef, where("userId", "==", userDoc.id));
+                   if (currentUser?.role !== 'admin') {
+                       fallbackQuery = query(fallbackQuery, where("status", "!=", "banned"));
+                   }
+
+                  getDocs(fallbackQuery).then(postsSnapshotFallback => {
                      let postsData = postsSnapshotFallback.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                     // Filter out banned posts again on client if query fails, just in case
-                     if (currentUser?.role !== 'admin') {
-                         postsData = postsData.filter(p => p.status !== 'banned');
-                     }
+                     // Manually sort on the client
                      const sortedPosts = postsData.sort((a, b) => {
                         const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
                         const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
@@ -117,7 +126,7 @@ export default function ProfilePage() {
             }
         } catch (error) {
             console.error("Error fetching profile:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data. You may need to create a Firestore index.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
             setProfileUser(null);
         } finally {
             setLoading(false);
@@ -135,7 +144,7 @@ export default function ProfilePage() {
 
     if (usernameFromUrl === 'me') {
         if (currentUser?.username) {
-            fetchUserProfile(currentUser.username);
+            router.replace(`/profile/${currentUser.username}`);
         } else if (!authLoading) {
             router.replace('/login');
         }
