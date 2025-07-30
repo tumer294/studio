@@ -21,7 +21,7 @@ const googleProvider = new GoogleAuthProvider();
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -49,7 +49,7 @@ export default function SignupPage() {
         name,
         username,
         email: user.email,
-        bio: 'Welcome to UmmahConnect!',
+        bio: t.welcomeToUmmahConnect,
         avatarUrl: '',
         coverPhotoUrl: '',
         followers: [],
@@ -57,7 +57,7 @@ export default function SignupPage() {
         createdAt: serverTimestamp(),
         role: email === 'admin@example.com' ? 'admin' : 'user',
         theme: 'light',
-        language: 'en',
+        language: language,
       });
 
       toast({ title: t.success, description: t.accountCreated });

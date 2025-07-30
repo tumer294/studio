@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getRedirectResult } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useTranslation } from "@/hooks/use-translation";
 
 function AppLoadingSkeleton() {
     return (
@@ -43,6 +44,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { t, language } = useTranslation();
   
   React.useEffect(() => {
     // This effect only handles redirecting away if the user is NOT authenticated *after* loading is complete.
@@ -72,7 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         name: firebaseUser.displayName || 'New User',
                         username: username,
                         email: firebaseUser.email,
-                        bio: 'Welcome to UmmahConnect!',
+                        bio: t.welcomeToUmmahConnect,
                         avatarUrl: firebaseUser.photoURL || '',
                         coverPhotoUrl: '',
                         followers: [],
@@ -80,7 +82,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         createdAt: serverTimestamp(),
                         role: 'user',
                         theme: 'light',
-                        language: 'en',
+                        language: language,
                     });
                 }
             }
@@ -89,7 +91,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }
     };
     handleRedirectResult();
-  }, []);
+  }, [t, language]);
 
 
   // While authentication is in progress, always display a loading skeleton.

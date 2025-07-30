@@ -41,6 +41,9 @@ const en = {
     submitReport: 'Submit Report',
     deletePost: 'Delete Post',
     createNewPost: 'Create a new post',
+    welcomeToUmmahConnect: 'Welcome to UmmahConnect!',
+    writeAComment: 'Write a comment...',
+    send: 'Send',
     // Toasts & Alerts
     error: 'Error',
     success: 'Success',
@@ -134,6 +137,9 @@ const tr: typeof en = {
     submitReport: 'Raporu Gönder',
     deletePost: 'Gönderiyi Sil',
     createNewPost: 'Yeni bir gönderi oluştur',
+    welcomeToUmmahConnect: 'UmmahConnect\'e Hoş Geldiniz!',
+    writeAComment: 'Bir yorum yazın...',
+    send: 'Gönder',
     // Toasts & Alerts
     error: 'Hata',
     success: 'Başarılı',
@@ -227,6 +233,9 @@ const es: typeof en = {
     submitReport: 'Enviar Reporte',
     deletePost: 'Eliminar Publicación',
     createNewPost: 'Crear una nueva publicación',
+    welcomeToUmmahConnect: '¡Bienvenido a UmmahConnect!',
+    writeAComment: 'Escribe un comentario...',
+    send: 'Enviar',
     // Toasts & Alerts
     error: 'Error',
     success: 'Éxito',
@@ -320,6 +329,9 @@ const fr: typeof en = {
     submitReport: 'Soumettre le signalement',
     deletePost: 'Supprimer la publication',
     createNewPost: 'Créer une nouvelle publication',
+    welcomeToUmmahConnect: 'Bienvenue sur UmmahConnect !',
+    writeAComment: 'Écrivez un commentaire...',
+    send: 'Envoyer',
     // Toasts & Alerts
     error: 'Erreur',
     success: 'Succès',
@@ -413,6 +425,9 @@ const ar: typeof en = {
     submitReport: 'إرسال البلاغ',
     deletePost: 'حذف المنشور',
     createNewPost: 'إنشاء منشور جديد',
+    welcomeToUmmahConnect: 'أهلاً بك في UmmahConnect!',
+    writeAComment: 'اكتب تعليقًا...',
+    send: 'إرسال',
     // Toasts & Alerts
     error: 'خطأ',
     success: 'نجاح',
@@ -506,6 +521,9 @@ const hi: typeof en = {
     submitReport: 'रिपोर्ट सबमिट करें',
     deletePost: 'पोस्ट हटाएं',
     createNewPost: 'एक नई पोस्ट बनाएं',
+    welcomeToUmmahConnect: 'UmmahConnect में आपका स्वागत है!',
+    writeAComment: 'एक टिप्पणी लिखें...',
+    send: 'भेजें',
     // Toasts & Alerts
     error: 'त्रुटि',
     success: 'सफलता',
@@ -599,6 +617,9 @@ const bn: typeof en = {
     submitReport: 'রিপোর্ট জমা দিন',
     deletePost: 'পোস্ট মুছুন',
     createNewPost: 'একটি নতুন পোস্ট তৈরি করুন',
+    welcomeToUmmahConnect: 'UmmahConnect-এ স্বাগতম!',
+    writeAComment: 'একটি মন্তব্য লিখুন...',
+    send: 'পাঠান',
     // Toasts & Alerts
     error: 'ত্রুটি',
     success: 'সাফল্য',
@@ -692,6 +713,9 @@ const ru: typeof en = {
     submitReport: 'Отправить жалобу',
     deletePost: 'Удалить публикацию',
     createNewPost: 'Создать новую публикацию',
+    welcomeToUmmahConnect: 'Добро пожаловать в UmmahConnect!',
+    writeAComment: 'Напишите комментарий...',
+    send: 'Отправить',
     // Toasts & Alerts
     error: 'Ошибка',
     success: 'Успешно',
@@ -785,6 +809,9 @@ const pt: typeof en = {
     submitReport: 'Enviar Denúncia',
     deletePost: 'Excluir Publicação',
     createNewPost: 'Criar uma nova publicação',
+    welcomeToUmmahConnect: 'Bem-vindo ao UmmahConnect!',
+    writeAComment: 'Escreva um comentário...',
+    send: 'Enviar',
     // Toasts & Alerts
     error: 'Erro',
     success: 'Sucesso',
@@ -878,6 +905,9 @@ const id: typeof en = {
     submitReport: 'Kirim Laporan',
     deletePost: 'Hapus Postingan',
     createNewPost: 'Buat postingan baru',
+    welcomeToUmmahConnect: 'Selamat datang di UmmahConnect!',
+    writeAComment: 'Tulis komentar...',
+    send: 'Kirim',
     // Toasts & Alerts
     error: 'Kesalahan',
     success: 'Berhasil',
@@ -959,5 +989,3 @@ export const appStrings = {
 };
 
 export type AppStrings = typeof appStrings;
-
-    

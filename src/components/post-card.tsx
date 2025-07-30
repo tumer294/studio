@@ -154,8 +154,8 @@ function CommentSection({ postId, currentUser }: { postId: string, currentUser: 
                     <AvatarImage src={currentUser.avatarUrl} alt="Current User" data-ai-hint="woman portrait" />
                     <AvatarFallback>{currentUser.name?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
-                <Input placeholder="Write a comment..." className="h-9" value={newComment} onChange={e => setNewComment(e.target.value)} />
-                <Button size="sm" type="submit" disabled={!newComment.trim()}>Send</Button>
+                <Input placeholder={t.writeAComment} className="h-9" value={newComment} onChange={e => setNewComment(e.target.value)} />
+                <Button size="sm" type="submit" disabled={!newComment.trim()}>{t.send}</Button>
             </form>
             {comments.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(comment => (
                 <div key={comment.id} className="flex items-start gap-3">
