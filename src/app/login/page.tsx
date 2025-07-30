@@ -66,35 +66,37 @@ export default function LoginPage() {
           <CardDescription>Enter your email below to login to your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading || isGoogleLoading}/>
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link href="#" className="ml-auto inline-block text-sm underline">
-                  Forgot your password?
-                </Link>
+          <div className="grid gap-4">
+            <form onSubmit={handleLogin} className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading || isGoogleLoading}/>
               </div>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading || isGoogleLoading}/>
+              <div className="grid gap-2">
+                <div className="flex items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <Link href="#" className="ml-auto inline-block text-sm underline">
+                    Forgot your password?
+                  </Link>
+                </div>
+                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading || isGoogleLoading}/>
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+                {isLoading ? 'Logging in...' : 'Login'}
+              </Button>
+            </form>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
-              {isLoading ? 'Logging in...' : 'Login'}
+            <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={isLoading || isGoogleLoading}>
+               {isGoogleLoading ? 'Redirecting to Google...' : 'Login with Google'}
             </Button>
-          </form>
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-            </div>
           </div>
-          <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={isLoading || isGoogleLoading}>
-             {isGoogleLoading ? 'Redirecting to Google...' : 'Login with Google'}
-          </Button>
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="underline">
