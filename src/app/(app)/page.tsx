@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { PenSquare } from "lucide-react";
 import { useCreatePost } from "@/hooks/use-create-post";
 import { Card } from "@/components/ui/card";
+import { useTranslation } from "@/hooks/use-translation";
 
 function FeedSkeleton() {
     return (
@@ -38,6 +39,7 @@ export default function FeedPage() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const { onOpen } = useCreatePost();
+  const { t } = useTranslation();
   const [posts, setPosts] = useState<Post[]>([]);
   const [users, setUsers] = useState<Record<string, User>>({});
   const [dataLoading, setDataLoading] = useState(true);
@@ -97,7 +99,7 @@ export default function FeedPage() {
       <DailyWisdom />
       <div className="p-4 bg-card border rounded-lg shadow-sm">
         <Button variant="outline" className="w-full justify-start text-muted-foreground" onClick={onOpen}>
-            <PenSquare className="mr-2" /> What's on your mind?
+            <PenSquare className="mr-2" /> {t.whatsOnYourMind}
         </Button>
       </div>
 
