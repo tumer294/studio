@@ -3,16 +3,32 @@ import { NextResponse } from 'next/server';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
+// Basic validation for environment variables
+const {
+  CLOUDFLARE_R2_ACCOUNT_ID,
+  CLOUDFLARE_R2_ACCESS_KEY_ID,
+  CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+  CLOUDFLARE_R2_BUCKET_NAME,
+} = process.env;
+
+if (!CLOUDFLARE_R2_ACCOUNT_ID || !CLOUDFLARE_R2_ACCESS_KEY_ID || !CLOUDFLARE_R2_SECRET_ACCESS_KEY || !CLOUDFLARE_R2_BUCKET_NAME) {
+  throw new Error('Cloudflare R2 environment variables are not properly configured.');
+}
+
 const s3Client = new S3Client({
   region: 'auto',
-  endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  endpoint: `https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
-    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
+    accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
+    secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
   },
 });
 
 export async function POST(request: Request) {
+  if (!s3Client) {
+      return NextResponse.json({ error: 'Server not configured for file operations.' }, { status: 500 });
+  }
+
   try {
     const { key } = await request.json();
 
@@ -21,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     const command = new GetObjectCommand({
-      Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+      Bucket: CLOUDFLARE_R2_BUCKET_NAME,
       Key: key,
     });
     

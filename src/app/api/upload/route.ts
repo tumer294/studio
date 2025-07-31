@@ -6,14 +6,24 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, writeBatch, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { User, StorageStats } from '@/lib/types';
 
-const s3Client = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
-  },
-});
+// Basic validation for environment variables
+const {
+  CLOUDFLARE_R2_ACCOUNT_ID,
+  CLOUDFLARE_R2_ACCESS_KEY_ID,
+  CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+  CLOUDFLARE_R2_BUCKET_NAME,
+} = process.env;
+
+const s3Client = CLOUDFLARE_R2_ACCOUNT_ID && CLOUDFLARE_R2_ACCESS_KEY_ID && CLOUDFLARE_R2_SECRET_ACCESS_KEY
+  ? new S3Client({
+      region: 'auto',
+      endpoint: `https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
+        secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+      },
+    })
+  : null;
 
 const MAX_FILE_SIZE_MB = 50;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -23,6 +33,10 @@ const GLOBAL_STORAGE_LIMIT_GB = 9.9;
 const GLOBAL_STORAGE_LIMIT_BYTES = GLOBAL_STORAGE_LIMIT_GB * 1024 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  if (!s3Client || !CLOUDFLARE_R2_BUCKET_NAME) {
+    return NextResponse.json({ error: 'Server not configured for file uploads.' }, { status: 500 });
+  }
+
   try {
     const { filename, contentType, size, userId } = await request.json();
 
@@ -87,7 +101,7 @@ export async function POST(request: Request) {
     
     // 5. Generate pre-signed URL for upload
     const command = new PutObjectCommand({
-      Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+      Bucket: CLOUDFLARE_R2_BUCKET_NAME,
       Key: filename,
       ContentType: contentType,
       ContentLength: size,
