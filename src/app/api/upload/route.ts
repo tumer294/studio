@@ -8,16 +8,15 @@ import type { User, StorageStats } from '@/lib/types';
 
 // Basic validation for environment variables
 const {
-  CLOUDFLARE_R2_ACCOUNT_ID,
   CLOUDFLARE_R2_ACCESS_KEY_ID,
   CLOUDFLARE_R2_SECRET_ACCESS_KEY,
   CLOUDFLARE_R2_BUCKET_NAME,
 } = process.env;
 
-const s3Client = CLOUDFLARE_R2_ACCOUNT_ID && CLOUDFLARE_R2_ACCESS_KEY_ID && CLOUDFLARE_R2_SECRET_ACCESS_KEY
+const s3Client = CLOUDFLARE_R2_ACCESS_KEY_ID && CLOUDFLARE_R2_SECRET_ACCESS_KEY && CLOUDFLARE_R2_BUCKET_NAME
   ? new S3Client({
       region: 'auto',
-      endpoint: `https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      endpoint: 'https://a5f7d3bf8e4c65974c5a60e4bf4a4677.r2.cloudflarestorage.com',
       credentials: {
         accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
         secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
@@ -33,7 +32,7 @@ const GLOBAL_STORAGE_LIMIT_GB = 9.9;
 const GLOBAL_STORAGE_LIMIT_BYTES = GLOBAL_STORAGE_LIMIT_GB * 1024 * 1024 * 1024;
 
 export async function POST(request: Request) {
-  if (!s3Client || !CLOUDFLARE_R2_BUCKET_NAME) {
+  if (!s3Client) {
     return NextResponse.json({ error: 'Server not configured for file uploads.' }, { status: 500 });
   }
 
