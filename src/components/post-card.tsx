@@ -84,7 +84,7 @@ function DisplayMedia({ mediaKey, mediaType, ...props }: { mediaKey?: string, me
 
     if (mediaType === 'image' && url) {
       return (
-        <div className="mt-3 rounded-lg overflow-hidden border relative w-full bg-black max-h-[600px] cursor-pointer">
+        <div className="mt-3 aspect-video w-full rounded-lg overflow-hidden border relative bg-black max-h-[600px] cursor-pointer">
           <Image
             src={url}
             alt="Post content"
