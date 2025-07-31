@@ -81,6 +81,7 @@ export default function CreatePost({ onPostCreated, handleCreatePost }: CreatePo
             const formData = new FormData();
             formData.append('file', file);
             formData.append('userId', user.uid);
+            formData.append('uploadType', 'post');
             
             const uploadResponse = await fetch('/api/upload', {
               method: 'POST',
