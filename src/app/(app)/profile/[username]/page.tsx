@@ -254,42 +254,54 @@ export default function ProfilePage() {
   }
 
  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
-    if (!e.target.files || e.target.files.length === 0 || !profileUser) return;
+    console.log(`DEBUG: handleImageUpload called for type: ${type}`);
+    if (!e.target.files || e.target.files.length === 0 || !profileUser) {
+        console.log("DEBUG: No file selected or no profile user. Aborting.");
+        return;
+    }
 
     const file = e.target.files[0];
+    console.log("DEBUG: File selected:", file.name, file.size, file.type);
+    
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
       toast({ variant: 'destructive', title: t.fileTooLarge, description: t.imageTooLargeDesc });
+      console.log("DEBUG: File too large. Aborting.");
       return;
     }
 
     setIsUploading(type);
+    console.log(`DEBUG: Uploading state set to: ${type}`);
 
     const filePath = type === 'avatar'
       ? `avatars/${profileUser.uid}/${Date.now()}-${file.name}`
       : `covers/${profileUser.uid}/${Date.now()}-${file.name}`;
+    console.log(`DEBUG: Storage path set to: ${filePath}`);
 
     const storageRef = ref(storage, filePath);
 
     try {
+      console.log("DEBUG: Attempting to upload file to Storage...");
       const snapshot = await uploadBytes(storageRef, file);
+      console.log("DEBUG: Upload successful. Snapshot:", snapshot);
+
+      console.log("DEBUG: Attempting to get download URL...");
       const downloadURL = await getDownloadURL(snapshot.ref);
+      console.log("DEBUG: Download URL retrieved:", downloadURL);
 
       const userDocRef = doc(db, "users", profileUser.uid);
       const updateData = type === 'avatar' ? { avatarUrl: downloadURL } : { coverPhotoUrl: downloadURL };
+      console.log("DEBUG: Preparing to update Firestore with:", updateData);
 
       await updateDoc(userDocRef, updateData);
+      console.log("DEBUG: Firestore update successful.");
 
-      setProfileUser((prevUser) => {
-        if (!prevUser) return null;
-        return { ...prevUser, ...updateData };
-      });
-      
       toast({ title: t.success, description: type === 'avatar' ? t.newAvatarSaved : t.newCoverSaved });
 
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("DEBUG: Error during image upload process:", error);
       toast({ variant: 'destructive', title: t.uploadFailed, description: t.couldNotUploadImage });
     } finally {
+      console.log("DEBUG: Upload process finished. Resetting state.");
       setIsUploading(null);
       if (e.target) {
         e.target.value = '';
@@ -419,5 +431,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
