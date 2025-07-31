@@ -5,9 +5,8 @@ import { useState, useEffect, useRef } from 'react';
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from '@/hooks/use-auth';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy, documentId } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User, Post } from '@/lib/types';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -250,40 +249,44 @@ export default function ProfilePage() {
   }
 
  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
-    if (!e.target.files || e.target.files.length === 0 || !profileUser) {
-        return;
-    }
-
+    if (!e.target.files || e.target.files.length === 0 || !profileUser) return;
     const file = e.target.files[0];
-    
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
       toast({ variant: 'destructive', title: t.fileTooLarge, description: t.imageTooLargeDesc });
       return;
     }
-
     setIsUploading(type);
-
-    const filePath = type === 'avatar'
-      ? `avatars/${profileUser.uid}/${Date.now()}-${file.name}`
-      : `covers/${profileUser.uid}/${Date.now()}-${file.name}`;
-
-    const storageRef = ref(storage, filePath);
-
     try {
-      const snapshot = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      const filename = `${type}s/${profileUser.uid}/${Date.now()}-${file.name}`;
+      
+      const presignResponse = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: filename, contentType: file.type }),
+      });
+
+      if (!presignResponse.ok) throw new Error('Failed to get pre-signed URL');
+      const { signedUrl, publicUrl } = await presignResponse.json();
+
+      const uploadResponse = await fetch(signedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type },
+      });
+
+      if (!uploadResponse.ok) throw new Error('Image upload failed');
+
       const userDocRef = doc(db, "users", profileUser.uid);
-      const updateData = type === 'avatar' ? { avatarUrl: downloadURL } : { coverPhotoUrl: downloadURL };
+      const updateData = type === 'avatar' ? { avatarUrl: publicUrl } : { coverPhotoUrl: publicUrl };
       await updateDoc(userDocRef, updateData);
       toast({ title: t.success, description: type === 'avatar' ? t.newAvatarSaved : t.newCoverSaved });
 
     } catch (error) {
+      console.error(error);
       toast({ variant: 'destructive', title: t.uploadFailed, description: t.couldNotUploadImage });
     } finally {
       setIsUploading(null);
-      if (e.target) {
-        e.target.value = '';
-      }
+      if (e.target) e.target.value = '';
     }
   };
 

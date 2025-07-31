@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { Post } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TextIcon, ImageIcon, Link2Icon, Film, Loader2 } from "lucide-react";
-import { storage } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/use-translation';
 
@@ -23,7 +21,7 @@ interface CreatePostProps {
 export default function CreatePost({ user, onPostCreated, handleCreatePost }: CreatePostProps) {
   const [activeTab, setActiveTab] = useState<"text" | "image" | "video" | "link">("text");
   const [postContent, setPostContent] = useState("");
-  const [mediaUrl, setMediaUrl] = useState(""); 
+  const [linkUrl, setLinkUrl] = useState(""); 
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
@@ -57,7 +55,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
 
   const resetState = () => {
     setPostContent("");
-    setMediaUrl("");
+    setLinkUrl("");
     setFile(null);
     if(fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -67,23 +65,38 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
   }
 
   const handlePost = async () => {
-    if ((!postContent.trim() && !file && !mediaUrl.trim()) || isUploading) {
+    if ((!postContent.trim() && !file && !linkUrl.trim()) || isUploading) {
         return;
     }
     
     setIsUploading(true);
     
     try {
-        let finalMediaUrl = mediaUrl;
+        let finalMediaUrl = linkUrl;
         let postType: Post['type'] = activeTab;
 
         if (file) {
             postType = activeTab as 'image' | 'video';
-            const storagePath = postType === 'image' ? `posts/images/${user.uid}/${Date.now()}-${file.name}` : `posts/videos/${user.uid}/${Date.now()}-${file.name}`;
-            const storageRef = ref(storage, storagePath);
+            const filename = `posts/${postType}s/${user.uid}/${Date.now()}-${file.name}`;
+
+            const presignResponse = await fetch('/api/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filename: filename, contentType: file.type }),
+            });
+
+            if (!presignResponse.ok) throw new Error('Failed to get pre-signed URL');
+            const { signedUrl, publicUrl } = await presignResponse.json();
             
-            const snapshot = await uploadBytes(storageRef, file);
-            finalMediaUrl = await getDownloadURL(snapshot.ref);
+            const uploadResponse = await fetch(signedUrl, {
+              method: 'PUT',
+              body: file,
+              headers: { 'Content-Type': file.type },
+            });
+
+            if (!uploadResponse.ok) throw new Error('File upload failed');
+            
+            finalMediaUrl = publicUrl;
         }
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'> = {
@@ -99,6 +112,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
         onPostCreated();
 
     } catch(error: any) {
+        console.error(error);
         toast({variant: 'destructive', title: t.uploadError, description: error.message || t.couldNotCreatePost})
     } finally {
         setIsUploading(false);
@@ -114,14 +128,14 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
   
   const handleTabClick = (tabId: "text" | "image" | "video" | "link") => {
       setFile(null);
-      setMediaUrl("");
+      setLinkUrl("");
       if(fileInputRef.current) {
         fileInputRef.current.value = "";
       }
       setActiveTab(tabId);
   }
 
-  const isPostButtonDisabled = (postContent.trim() === "" && !file && (activeTab !== 'link' || mediaUrl.trim() === "")) || isUploading;
+  const isPostButtonDisabled = (postContent.trim() === "" && !file && (activeTab !== 'link' || linkUrl.trim() === "")) || isUploading;
 
 
   return (
@@ -169,7 +183,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
             )}
             {(activeTab === 'link') && (
                <div className="mt-2">
-                 <Input type="url" placeholder={t.linkUrlPlaceholder} value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
+                 <Input type="url" placeholder={t.linkUrlPlaceholder} value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
               </div>
             )}
         </div>
