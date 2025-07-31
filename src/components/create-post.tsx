@@ -32,33 +32,26 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("DEBUG: handleFileChange triggered.");
     if (event.target.files && event.target.files[0]) {
       const selectedFile = event.target.files[0];
-      console.log("DEBUG: File selected:", selectedFile);
       
       const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
       const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
 
       if (activeTab === 'image' && !allowedImageTypes.includes(selectedFile.type)) {
           toast({ variant: 'destructive', title: t.invalidFile, description: t.invalidImageFile });
-          console.log("DEBUG: Invalid image type.");
           return;
       }
       if (activeTab === 'video' && !allowedVideoTypes.includes(selectedFile.type)) {
           toast({ variant: 'destructive', title: t.invalidFile, description: t.invalidVideoFile });
-          console.log("DEBUG: Invalid video type.");
           return;
       }
       if (selectedFile.size > 20 * 1024 * 1024) { // 20MB limit
           toast({ variant: 'destructive', title: t.fileTooLarge, description: t.fileTooLarge20MB });
-          console.log("DEBUG: File too large.");
           return;
       }
       
       setFile(selectedFile);
-    } else {
-        console.log("DEBUG: No file selected.");
     }
   };
 
@@ -74,32 +67,23 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
   }
 
   const handlePost = async () => {
-    console.log("DEBUG: handlePost called.");
     if ((!postContent.trim() && !file && !mediaUrl.trim()) || isUploading) {
-        console.log("DEBUG: handlePost aborted. Reason: empty content or already uploading.");
         return;
     }
     
     setIsUploading(true);
-    console.log("DEBUG: isUploading state set to true.");
     
     try {
         let finalMediaUrl = mediaUrl;
         let postType: Post['type'] = activeTab;
 
         if (file) {
-            console.log("DEBUG: File detected, starting upload process.");
             postType = activeTab as 'image' | 'video';
             const storagePath = postType === 'image' ? `posts/images/${user.uid}/${Date.now()}-${file.name}` : `posts/videos/${user.uid}/${Date.now()}-${file.name}`;
             const storageRef = ref(storage, storagePath);
             
-            console.log(`DEBUG: Attempting to upload to: ${storagePath}`);
             const snapshot = await uploadBytes(storageRef, file);
-            console.log("DEBUG: Upload successful. Snapshot:", snapshot);
-
-            console.log("DEBUG: Attempting to get download URL.");
             finalMediaUrl = await getDownloadURL(snapshot.ref);
-            console.log("DEBUG: Download URL retrieved:", finalMediaUrl);
         }
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'> = {
@@ -108,20 +92,17 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
             mediaUrl: finalMediaUrl,
         };
         
-        console.log("DEBUG: Calling handleCreatePost with:", newPost);
         await handleCreatePost(newPost);
         
         toast({ title: t.success, description: t.postPublished });
-        console.log("DEBUG: Post successful, resetting state.");
         resetState();
         onPostCreated();
 
     } catch(error: any) {
-        console.error("DEBUG: Error during post creation process:", error);
+        console.error("Error during post creation process:", error);
         toast({variant: 'destructive', title: t.uploadError, description: error.message || t.couldNotCreatePost})
     } finally {
         setIsUploading(false);
-        console.log("DEBUG: isUploading state set to false in finally block.");
     }
   };
   

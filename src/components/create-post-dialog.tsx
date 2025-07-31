@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { useCreatePost } from "@/hooks/use-create-post";
 import CreatePost from "./create-post";
@@ -23,9 +24,7 @@ export default function CreatePostDialog() {
     const { t } = useTranslation();
     
     const handleCreatePost = async (newPostData: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'>) => {
-        console.log("DEBUG: handleCreatePost in dialog called with:", newPostData);
         if (!user) {
-          console.log("DEBUG: No user found, showing toast.");
           toast({ variant: 'destructive', title: t.notAuthenticated, description: t.mustBeLoggedIn});
           return;
         }
@@ -40,11 +39,9 @@ export default function CreatePostDialog() {
             reports: [],
             status: 'active',
           };
-          console.log("DEBUG: Attempting to add document to Firestore with payload:", postPayload);
           await addDoc(collection(db, "posts"), postPayload);
-          console.log("DEBUG: Firestore addDoc successful.");
         } catch (error) {
-           console.error("DEBUG: Error creating post in Firestore:", error);
+           console.error("Error creating post in Firestore:", error);
            toast({ variant: 'destructive', title: t.postError, description: t.couldNotCreatePost});
         }
     };
@@ -58,6 +55,9 @@ export default function CreatePostDialog() {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{t.createNewPost}</DialogTitle>
+                     <DialogDescription>
+                        Share your thoughts, photos, videos, or links with the community.
+                    </DialogDescription>
                 </DialogHeader>
                 <CreatePost user={user} onPostCreated={onClose} handleCreatePost={handleCreatePost} />
             </DialogContent>
