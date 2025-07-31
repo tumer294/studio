@@ -41,7 +41,6 @@ export default function CreatePostDialog() {
           };
           await addDoc(collection(db, "posts"), postPayload);
         } catch (error) {
-           console.error("Error creating post in Firestore:", error);
            toast({ variant: 'destructive', title: t.postError, description: t.couldNotCreatePost});
         }
     };
@@ -64,5 +63,3 @@ export default function CreatePostDialog() {
         </Dialog>
     )
 }
-
-    

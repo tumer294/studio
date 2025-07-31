@@ -99,7 +99,6 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
         onPostCreated();
 
     } catch(error: any) {
-        console.error("Error during post creation process:", error);
         toast({variant: 'destructive', title: t.uploadError, description: error.message || t.couldNotCreatePost})
     } finally {
         setIsUploading(false);
@@ -192,5 +191,3 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
     </div>
   );
 }
-
-    

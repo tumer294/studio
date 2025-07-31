@@ -101,7 +101,6 @@ export default function ProfilePage() {
             });
 
         } catch (error) {
-            console.error("Error fetching profile user:", error);
             toast({ variant: 'destructive', title: t.error, description: t.couldNotFetchProfile });
             setProfileUser(null);
             setLoading(false);
@@ -155,7 +154,6 @@ export default function ProfilePage() {
         setLoading(false);
       },
       (error) => {
-        console.error('Error fetching user posts:', error);
         toast({
           variant: 'destructive',
           title: t.error,
@@ -221,7 +219,6 @@ export default function ProfilePage() {
 
             setSavedPostsWithUsers(populatedPosts);
         } catch(error) {
-            console.error("Error fetching saved posts:", error);
             toast({ variant: 'destructive', title: t.error, description: t.couldNotFetchSavedPosts });
         }
     };
@@ -248,7 +245,6 @@ export default function ProfilePage() {
             toast({ title: t.followed, description: t.followedDesc(profileUser.name) });
         }
     } catch(error) {
-        console.error("Error following user:", error);
         toast({ variant: 'destructive', title: t.error, description: t.actionCouldNotBeCompleted });
     }
   }
@@ -282,7 +278,6 @@ export default function ProfilePage() {
       toast({ title: t.success, description: type === 'avatar' ? t.newAvatarSaved : t.newCoverSaved });
 
     } catch (error) {
-      console.error("Error during image upload process:", error);
       toast({ variant: 'destructive', title: t.uploadFailed, description: t.couldNotUploadImage });
     } finally {
       setIsUploading(null);
@@ -414,5 +409,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
