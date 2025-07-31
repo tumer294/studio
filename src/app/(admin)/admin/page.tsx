@@ -169,8 +169,6 @@ export default function AdminPage() {
             if (doc.exists()) {
                 setStorageStats(doc.data() as StorageStats);
             } else {
-                // If it doesn't exist, create it.
-                // This will be handled by the API route, but good to have a fallback.
                 setStorageStats({
                     totalStorageUsed: 0,
                     currentCycleStart: new Date(),
@@ -188,7 +186,7 @@ export default function AdminPage() {
             unsubPosts();
             unsubStorage();
         };
-    }, []);
+    }, [t.couldNotFetchDashboardStats, t.error, toast]);
 
     const handleDeleteUser = async (userId: string, userName: string) => {
         if (window.confirm(`Are you sure you want to delete user ${userName}? This action cannot be undone.`)) {

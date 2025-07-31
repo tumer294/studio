@@ -276,38 +276,28 @@ export default function ProfilePage() {
     
     setIsUploading(type);
     try {
-      const filename = `${type}s/${profileUser.uid}/${Date.now()}-${file.name}`;
-      
-      const presignResponse = await fetch('/api/upload', {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', currentUser.uid);
+      formData.append('uploadType', type);
+
+      const response = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            filename: filename, 
-            contentType: file.type, 
-            size: file.size, 
-            userId: currentUser.uid 
-        }),
+        body: formData,
       });
       
-      const presignData = await presignResponse.json();
+      const result = await response.json();
 
-      if (!presignResponse.ok) {
-          throw new Error(presignData.error || 'Failed to get pre-signed URL');
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed');
       }
       
-      const { signedUrl, key } = presignData;
-
-      const uploadResponse = await fetch(signedUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type },
-      });
-
-      if (!uploadResponse.ok) throw new Error('Image upload failed');
+      const { key } = result;
 
       const userDocRef = doc(db, "users", profileUser.uid);
       const updateData = type === 'avatar' ? { avatarUrl: key } : { coverPhotoUrl: key };
       await updateDoc(userDocRef, updateData);
+
       toast({ title: t.success, description: type === 'avatar' ? t.newAvatarSaved : t.newCoverSaved });
 
     } catch (error: any) {

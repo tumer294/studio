@@ -4,7 +4,6 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, writeBatch, Timestamp } from 'firebase/firestore';
 import type { User, StorageStats } from '@/lib/types';
-import { PassThrough } from 'stream';
 
 const {
   CLOUDFLARE_R2_ACCESS_KEY_ID,
@@ -15,7 +14,7 @@ const {
 const s3Client = CLOUDFLARE_R2_ACCESS_KEY_ID && CLOUDFLARE_R2_SECRET_ACCESS_KEY && CLOUDFLARE_R2_BUCKET_NAME
   ? new S3Client({
       region: 'auto',
-      endpoint: 'https://a5f7d3bf8e4c65974c5a60e4bf4a4677.r2.cloudflarestorage.com',
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
       credentials: {
         accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
         secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
@@ -48,9 +47,10 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const userId = formData.get('userId') as string | null;
+    const uploadType = formData.get('uploadType') as 'post' | 'avatar' | 'cover' | null;
 
-    if (!file || !userId) {
-      return NextResponse.json({ error: 'Missing file or user ID in request.' }, { status: 400 });
+    if (!file || !userId || !uploadType) {
+      return NextResponse.json({ error: 'Missing file, user ID, or uploadType in request.' }, { status: 400 });
     }
 
     const { name: filename, type: contentType, size } = file;
@@ -108,7 +108,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `You have reached your daily upload limit of ${DAILY_UPLOAD_LIMIT_MB}MB.` }, { status: 429 });
     }
     
-    const key = `posts/${userId}/${Date.now()}-${filename}`;
+    const folder = uploadType === 'post' ? 'posts' : (uploadType === 'avatar' ? 'avatars' : 'covers');
+    const key = `${folder}/${userId}/${Date.now()}-${filename}`;
+    
     const fileBuffer = await buffer(file.stream());
     
     // 4. Upload to R2
