@@ -27,8 +27,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from './ui/textarea';
 import { useAuth } from '@/hooks/use-auth';
 import { doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, onSnapshot } from 'firebase/firestore';
@@ -84,12 +84,12 @@ function DisplayMedia({ mediaKey, mediaType, ...props }: { mediaKey?: string, me
 
     if (mediaType === 'image' && url) {
       return (
-        <div className="mt-3 rounded-lg overflow-hidden border relative w-full aspect-video max-h-[600px]">
+        <div className="mt-3 rounded-lg overflow-hidden border relative w-full bg-black max-h-[600px] cursor-pointer">
           <Image
             src={url}
             alt="Post content"
             fill
-            className="object-cover"
+            className="object-contain"
             data-ai-hint={props['data-ai-hint'] || 'post image'}
           />
         </div>
@@ -98,7 +98,7 @@ function DisplayMedia({ mediaKey, mediaType, ...props }: { mediaKey?: string, me
     
     if (mediaType === 'video' && url) {
         return (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black max-h-[600px]">
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black max-h-[600px] cursor-pointer">
                 <video src={url} controls className="w-full h-full object-contain"></video>
             </div>
         );
@@ -260,6 +260,38 @@ function CommentSection({ postId, currentUser }: { postId: string, currentUser: 
     )
 }
 
+function Lightbox({ mediaKey, mediaType, children }: { mediaKey?: string, mediaType?: Post['type'], children: React.ReactNode }) {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isCancelled = false;
+        if (mediaKey) {
+            getDownloadUrl(mediaKey).then(downloadUrl => {
+                if (!isCancelled) setUrl(downloadUrl);
+            });
+        }
+        return () => { isCancelled = true };
+    }, [mediaKey]);
+
+    if (!mediaKey || !url) {
+        return <>{children}</>;
+    }
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] p-2 bg-black border-none flex items-center justify-center">
+                {mediaType === 'image' && (
+                    <Image src={url} alt="Post content enlarged" width={1920} height={1080} className="max-w-full max-h-[85vh] object-contain" />
+                )}
+                {mediaType === 'video' && (
+                    <video src={url} controls autoPlay className="max-w-full max-h-[85vh]"></video>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function PostCard({ post: initialPost, user }: PostCardProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
@@ -352,7 +384,11 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     }
     
     if (post.type === 'image' || post.type === 'video') {
-      return <DisplayMedia mediaKey={post.mediaUrl} mediaType={post.type} data-ai-hint={post['data-ai-hint']} />;
+      return (
+        <Lightbox mediaKey={post.mediaUrl} mediaType={post.type}>
+            <DisplayMedia mediaKey={post.mediaUrl} mediaType={post.type} data-ai-hint={post['data-ai-hint']} />
+        </Lightbox>
+      );
     }
 
     if(post.type === 'link') {
