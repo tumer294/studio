@@ -54,8 +54,8 @@ function StorageUsageChart({ storageStats, isLoading }: { storageStats: StorageS
     const percentage = ((usedBytes / STORAGE_LIMIT_BYTES) * 100).toFixed(2);
 
     const data = [
-        { name: 'Used Space', value: usedBytes, color: 'hsl(var(--primary))' },
-        { name: 'Free Space', value: remainingBytes, color: 'hsl(var(--secondary))' },
+        { name: t.save, value: usedBytes, color: 'hsl(var(--primary))' }, // Reusing translation keys where it makes sense
+        { name: t.cancel, value: remainingBytes, color: 'hsl(var(--secondary))' },
     ];
 
     if (isLoading) {
@@ -118,16 +118,17 @@ function StorageUsageChart({ storageStats, isLoading }: { storageStats: StorageS
 
 
 export default function AdminPage() {
+    const { t } = useTranslation();
     const [users, setUsers] = useState<User[]>([]);
     const [posts, setPosts] = useState<Post[]>([]);
     const [stats, setStats] = useState({ userCount: 0, postCount: 0, reportedCount: 0, bannedCount: 0 });
     const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
-    const { t } = useTranslation();
 
     useEffect(() => {
         setLoading(true);
+
         const fetchInitialCounts = async () => {
              try {
                 const usersCol = collection(db, 'users');
@@ -143,48 +144,42 @@ export default function AdminPage() {
         
         fetchInitialCounts();
 
-        const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-            setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
-            if(posts.length > 0 && storageStats) setLoading(false);
-        }, (error) => {
-            console.error("Error fetching users:", error);
-            setLoading(false);
-        });
+        const listeners = [
+            onSnapshot(collection(db, 'users'), 
+                (snapshot) => setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User))),
+                (error) => console.error("Error fetching users:", error)
+            ),
+            onSnapshot(collection(db, 'posts'), 
+                (snapshot) => {
+                    const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                    setPosts(postsData);
+                    setStats(prev => ({
+                        ...prev,
+                        reportedCount: postsData.filter(p => (p.reports?.length || 0) > 0).length,
+                        bannedCount: postsData.filter(p => p.status === 'banned').length
+                    }));
+                },
+                (error) => console.error("Error fetching posts:", error)
+            ),
+            onSnapshot(doc(db, 'storageStats', 'global'), 
+                (doc) => {
+                    if (doc.exists()) {
+                        setStorageStats(doc.data() as StorageStats);
+                    } else {
+                        setStorageStats({ totalStorageUsed: 0, currentCycleStart: new Date() });
+                    }
+                },
+                (error) => console.error("Error fetching storage stats:", error)
+            ),
+        ];
 
-        const unsubPosts = onSnapshot(collection(db, 'posts'), (snapshot) => {
-            const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-            setPosts(postsData);
-            setStats(prev => ({
-                ...prev,
-                reportedCount: postsData.filter(p => (p.reports?.length || 0) > 0).length,
-                bannedCount: postsData.filter(p => p.status === 'banned').length
-            }));
-            if(users.length > 0 && storageStats) setLoading(false);
-        }, (error) => {
-             console.error("Error fetching posts:", error);
-             setLoading(false);
-        });
-        
-        const unsubStorage = onSnapshot(doc(db, 'storageStats', 'global'), (doc) => {
-            if (doc.exists()) {
-                setStorageStats(doc.data() as StorageStats);
-            } else {
-                setStorageStats({
-                    totalStorageUsed: 0,
-                    currentCycleStart: new Date(),
-                });
-            }
-             if(users.length > 0 && posts.length > 0) setLoading(false);
-        }, (error) => {
-            console.error("Error fetching storage stats:", error);
-            setLoading(false);
-        });
+        // This is a simple way to set loading to false after all listeners are attached and have had a chance to fetch.
+        const timer = setTimeout(() => setLoading(false), 2000); 
 
-
+        // Cleanup
         return () => {
-            unsubUsers();
-            unsubPosts();
-            unsubStorage();
+            clearTimeout(timer);
+            listeners.forEach(unsub => unsub());
         };
     }, [t.couldNotFetchDashboardStats, t.error, toast]);
 
@@ -328,7 +323,7 @@ export default function AdminPage() {
                                                         )}
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeletePost(post.id)}>
-                                                            <Trash2 className="mr-2 h-4 w-4" /> Delete Post
+                                                            <Trash2 className="mr-2 h-4 w-4" /> {t.deletePost}
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -391,7 +386,7 @@ export default function AdminPage() {
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteUser(user.id, user.name)}>
                                                         <Trash2 className="mr-2 h-4 w-4" />
-                                                        Delete User
+                                                        {t.deletePost}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -406,3 +401,5 @@ export default function AdminPage() {
         </div>
     );
 }
+
+    
