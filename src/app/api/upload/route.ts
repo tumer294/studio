@@ -14,7 +14,7 @@ const {
 const s3Client = CLOUDFLARE_R2_ACCESS_KEY_ID && CLOUDFLARE_R2_SECRET_ACCESS_KEY && CLOUDFLARE_R2_BUCKET_NAME
   ? new S3Client({
       region: 'auto',
-      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      endpoint: 'https://a5f7d3bf8e4c65974c5a60e4bf4a4677.r2.cloudflarestorage.com',
       credentials: {
         accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
         secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
