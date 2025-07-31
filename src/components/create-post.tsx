@@ -11,14 +11,16 @@ import { Label } from "@/components/ui/label";
 import { TextIcon, ImageIcon, Link2Icon, Film, Loader2 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/use-translation';
+import { useAuth } from '@/hooks/use-auth';
+
 
 interface CreatePostProps {
-  user: any; 
   onPostCreated: () => void;
-  handleCreatePost: (post: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'>) => Promise<void>;
+  handleCreatePost: (post: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status' | 'fileSize'>, fileSize?: number) => Promise<void>;
 }
 
-export default function CreatePost({ user, onPostCreated, handleCreatePost }: CreatePostProps) {
+export default function CreatePost({ onPostCreated, handleCreatePost }: CreatePostProps) {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"text" | "image" | "video" | "link">("text");
   const [postContent, setPostContent] = useState("");
   const [linkUrl, setLinkUrl] = useState(""); 
@@ -44,10 +46,6 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
           toast({ variant: 'destructive', title: t.invalidFile, description: t.invalidVideoFile });
           return;
       }
-      if (selectedFile.size > 20 * 1024 * 1024) { // 20MB limit
-          toast({ variant: 'destructive', title: t.fileTooLarge, description: t.fileTooLarge20MB });
-          return;
-      }
       
       setFile(selectedFile);
     }
@@ -65,7 +63,7 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
   }
 
   const handlePost = async () => {
-    if ((!postContent.trim() && !file && !linkUrl.trim()) || isUploading) {
+    if ((!postContent.trim() && !file && !linkUrl.trim()) || isUploading || !user) {
         return;
     }
     
@@ -74,19 +72,31 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
     try {
         let finalMediaUrl = linkUrl;
         let postType: Post['type'] = activeTab;
+        let fileSize: number | undefined = undefined;
 
         if (file) {
             postType = activeTab as 'image' | 'video';
+            fileSize = file.size;
             const filename = `posts/${postType}s/${user.uid}/${Date.now()}-${file.name}`;
-
+            
             const presignResponse = await fetch('/api/upload', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ filename: filename, contentType: file.type }),
+              body: JSON.stringify({ 
+                  filename, 
+                  contentType: file.type,
+                  size: file.size,
+                  userId: user.uid
+              }),
             });
+            
+            const presignData = await presignResponse.json();
 
-            if (!presignResponse.ok) throw new Error('Failed to get pre-signed URL');
-            const { signedUrl, publicUrl } = await presignResponse.json();
+            if (!presignResponse.ok) {
+              throw new Error(presignData.error || 'Failed to get pre-signed URL');
+            }
+
+            const { signedUrl, publicUrl } = presignData;
             
             const uploadResponse = await fetch(signedUrl, {
               method: 'PUT',
@@ -99,13 +109,13 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
             finalMediaUrl = publicUrl;
         }
 
-        const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'> = {
+        const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status' | 'fileSize'> = {
             content: postContent,
             type: postType,
             mediaUrl: finalMediaUrl,
         };
         
-        await handleCreatePost(newPost);
+        await handleCreatePost(newPost, fileSize);
         
         toast({ title: t.success, description: t.postPublished });
         resetState();
@@ -138,12 +148,16 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
   const isPostButtonDisabled = (postContent.trim() === "" && !file && (activeTab !== 'link' || linkUrl.trim() === "")) || isUploading;
 
 
+  if (!user) {
+    return <div>Loading...</div>
+  }
+
   return (
     <div className="flex flex-col gap-4">
         <div className="flex items-start gap-4">
           <Avatar>
             <AvatarImage src={user.avatarUrl || user.photoURL} alt={user.name} data-ai-hint="person portrait" />
-            <AvatarFallback>{user.name ? user.name.charAt(0) : user.email.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{user.name ? user.name.charAt(0) : user.email?.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="w-full">
             <Textarea

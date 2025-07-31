@@ -1,5 +1,6 @@
 
 import type { Language } from "@/app-strings";
+import type { Timestamp } from "firebase/firestore";
 
 export interface User {
   id: string; // This will be the Firebase UID
@@ -18,6 +19,9 @@ export interface User {
   createdAt: any; // Firestore Timestamp
   language?: Language;
   theme?: string;
+  dailyUploads?: {
+    [date: string]: number; // "YYYY-MM-DD": bytes
+  };
 }
 
 export type PostType = 'text' | 'image' | 'video' | 'link';
@@ -50,6 +54,10 @@ export interface Post {
   'data-ai-hint'?: string;
   reports?: Report[];
   status?: 'active' | 'banned';
+  fileSize?: number; // Size of the uploaded media in bytes
 }
 
-    
+export interface StorageStats {
+    totalStorageUsed: number; // in bytes
+    currentCycleStart: any; // Firestore Timestamp
+}

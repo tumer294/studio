@@ -2,15 +2,15 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, deleteDoc, doc, getCountFromServer, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, deleteDoc, doc, getCountFromServer, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { User, Post } from '@/lib/types';
+import type { User, Post, StorageStats } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MoreHorizontal, Trash2, Users, FileText, BarChart2, ShieldAlert, Ban } from 'lucide-react';
+import { MoreHorizontal, Trash2, Users, FileText, BarChart2, ShieldAlert, Ban, HardDrive } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -22,6 +22,10 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from '@/hooks/use-translation';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+
+const STORAGE_LIMIT_GB = 9.9;
+const STORAGE_LIMIT_BYTES = STORAGE_LIMIT_GB * 1024 * 1024 * 1024;
 
 
 function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: number, icon: React.ElementType, isLoading: boolean }) {
@@ -42,17 +46,89 @@ function StatCard({ title, value, icon: Icon, isLoading }: { title: string, valu
     );
 }
 
+function StorageUsageChart({ storageStats, isLoading }: { storageStats: StorageStats | null, isLoading: boolean }) {
+    const { t } = useTranslation();
+    const usedBytes = storageStats?.totalStorageUsed || 0;
+    const remainingBytes = Math.max(0, STORAGE_LIMIT_BYTES - usedBytes);
+    const usedGb = (usedBytes / (1024 * 1024 * 1024)).toFixed(2);
+    const percentage = ((usedBytes / STORAGE_LIMIT_BYTES) * 100).toFixed(2);
+
+    const data = [
+        { name: 'Used Space', value: usedBytes, color: 'hsl(var(--primary))' },
+        { name: 'Free Space', value: remainingBytes, color: 'hsl(var(--secondary))' },
+    ];
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><HardDrive /> Storage Usage</CardTitle>
+                    <CardDescription>Monthly cloud storage usage.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center items-center h-[200px]">
+                    <Skeleton className="h-40 w-40 rounded-full" />
+                </CardContent>
+            </Card>
+        )
+    }
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><HardDrive /> Storage Usage</CardTitle>
+                <CardDescription>
+                    Monthly usage is {usedGb} GB ({percentage}%) of {STORAGE_LIMIT_GB} GB limit.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="w-full h-[200px]">
+                   <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie
+                                data={data}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                                stroke="hsl(var(--background))"
+                                strokeWidth={3}
+                            >
+                                {data.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                            </Pie>
+                            <Tooltip
+                                contentStyle={{
+                                    background: 'hsl(var(--card))',
+                                    border: '1px solid hsl(var(--border))',
+                                    borderRadius: 'var(--radius)',
+                                }}
+                                formatter={(value: number) => `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB`}
+                            />
+                             <Legend />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
+
 export default function AdminPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [posts, setPosts] = useState<Post[]>([]);
     const [stats, setStats] = useState({ userCount: 0, postCount: 0, reportedCount: 0, bannedCount: 0 });
+    const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
     const { t } = useTranslation();
 
     useEffect(() => {
         setLoading(true);
-        const fetchStats = async () => {
+        const fetchInitialCounts = async () => {
              try {
                 const usersCol = collection(db, 'users');
                 const postsCol = collection(db, 'posts');
@@ -60,16 +136,16 @@ export default function AdminPage() {
                 const postSnapshot = await getCountFromServer(postsCol);
                 setStats(prev => ({ ...prev, userCount: userSnapshot.data().count, postCount: postSnapshot.data().count }));
             } catch (error) {
-                console.error("Error fetching stats:", error);
+                console.error("Error fetching counts:", error);
                 toast({ variant: 'destructive', title: t.error, description: t.couldNotFetchDashboardStats });
             }
         };
         
-        fetchStats();
+        fetchInitialCounts();
 
         const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
             setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
-            if(posts.length > 0) setLoading(false);
+            if(posts.length > 0 && storageStats) setLoading(false);
         }, (error) => {
             console.error("Error fetching users:", error);
             setLoading(false);
@@ -83,17 +159,36 @@ export default function AdminPage() {
                 reportedCount: postsData.filter(p => (p.reports?.length || 0) > 0).length,
                 bannedCount: postsData.filter(p => p.status === 'banned').length
             }));
-            if(users.length > 0) setLoading(false);
+            if(users.length > 0 && storageStats) setLoading(false);
         }, (error) => {
              console.error("Error fetching posts:", error);
              setLoading(false);
         });
+        
+        const unsubStorage = onSnapshot(doc(db, 'storageStats', 'global'), (doc) => {
+            if (doc.exists()) {
+                setStorageStats(doc.data() as StorageStats);
+            } else {
+                // If it doesn't exist, create it.
+                // This will be handled by the API route, but good to have a fallback.
+                setStorageStats({
+                    totalStorageUsed: 0,
+                    currentCycleStart: new Date(),
+                });
+            }
+             if(users.length > 0 && posts.length > 0) setLoading(false);
+        }, (error) => {
+            console.error("Error fetching storage stats:", error);
+            setLoading(false);
+        });
+
 
         return () => {
             unsubUsers();
             unsubPosts();
+            unsubStorage();
         };
-    }, [toast, users.length, posts.length, t]);
+    }, []);
 
     const handleDeleteUser = async (userId: string, userName: string) => {
         if (window.confirm(`Are you sure you want to delete user ${userName}? This action cannot be undone.`)) {
@@ -152,6 +247,21 @@ export default function AdminPage() {
                 <StatCard title="Total Posts" value={stats.postCount} icon={FileText} isLoading={loading} />
                 <StatCard title="Reported Posts" value={stats.reportedCount} icon={ShieldAlert} isLoading={loading} />
                 <StatCard title="Banned Posts" value={stats.bannedCount} icon={Ban} isLoading={loading} />
+            </div>
+            
+            <div className="grid gap-6 lg:grid-cols-2">
+                <StorageUsageChart storageStats={storageStats} isLoading={loading} />
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Quick Actions</CardTitle>
+                        <CardDescription>Perform common administrative tasks.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <Button variant="outline" className="w-full">Send Global Notification</Button>
+                        <Button variant="outline" className="w-full">Recalculate All Stats</Button>
+                        <Button variant="destructive" className="w-full">Temporarily Disable Site</Button>
+                    </CardContent>
+                </Card>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-1">

@@ -23,14 +23,14 @@ export default function CreatePostDialog() {
     const { toast } = useToast();
     const { t } = useTranslation();
     
-    const handleCreatePost = async (newPostData: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status'>) => {
+    const handleCreatePost = async (newPostData: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status' | 'fileSize'>, fileSize?: number) => {
         if (!user) {
           toast({ variant: 'destructive', title: t.notAuthenticated, description: t.mustBeLoggedIn});
           return;
         }
 
         try {
-          const postPayload = {
+          const postPayload: Omit<Post, 'id'> = {
             ...newPostData,
             userId: user.uid,
             createdAt: serverTimestamp(),
@@ -38,6 +38,7 @@ export default function CreatePostDialog() {
             comments: [],
             reports: [],
             status: 'active',
+            fileSize: fileSize || 0,
           };
           await addDoc(collection(db, "posts"), postPayload);
         } catch (error) {
@@ -58,7 +59,7 @@ export default function CreatePostDialog() {
                         Share your thoughts, photos, videos, or links with the community.
                     </DialogDescription>
                 </DialogHeader>
-                <CreatePost user={user} onPostCreated={onClose} handleCreatePost={handleCreatePost} />
+                <CreatePost onPostCreated={onClose} handleCreatePost={handleCreatePost} />
             </DialogContent>
         </Dialog>
     )

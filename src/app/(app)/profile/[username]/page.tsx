@@ -249,12 +249,9 @@ export default function ProfilePage() {
   }
 
  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
-    if (!e.target.files || e.target.files.length === 0 || !profileUser) return;
+    if (!e.target.files || e.target.files.length === 0 || !profileUser || !currentUser) return;
     const file = e.target.files[0];
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      toast({ variant: 'destructive', title: t.fileTooLarge, description: t.imageTooLargeDesc });
-      return;
-    }
+    
     setIsUploading(type);
     try {
       const filename = `${type}s/${profileUser.uid}/${Date.now()}-${file.name}`;
@@ -262,11 +259,21 @@ export default function ProfilePage() {
       const presignResponse = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: filename, contentType: file.type }),
+        body: JSON.stringify({ 
+            filename: filename, 
+            contentType: file.type, 
+            size: file.size, 
+            userId: currentUser.uid 
+        }),
       });
+      
+      const presignData = await presignResponse.json();
 
-      if (!presignResponse.ok) throw new Error('Failed to get pre-signed URL');
-      const { signedUrl, publicUrl } = await presignResponse.json();
+      if (!presignResponse.ok) {
+          throw new Error(presignData.error || 'Failed to get pre-signed URL');
+      }
+      
+      const { signedUrl, publicUrl } = presignData;
 
       const uploadResponse = await fetch(signedUrl, {
         method: 'PUT',
@@ -281,9 +288,9 @@ export default function ProfilePage() {
       await updateDoc(userDocRef, updateData);
       toast({ title: t.success, description: type === 'avatar' ? t.newAvatarSaved : t.newCoverSaved });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast({ variant: 'destructive', title: t.uploadFailed, description: t.couldNotUploadImage });
+      toast({ variant: 'destructive', title: t.uploadFailed, description: error.message || t.couldNotUploadImage });
     } finally {
       setIsUploading(null);
       if (e.target) e.target.value = '';
