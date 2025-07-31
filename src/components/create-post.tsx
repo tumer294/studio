@@ -70,43 +70,30 @@ export default function CreatePost({ onPostCreated, handleCreatePost }: CreatePo
     setIsUploading(true);
     
     try {
-        let finalMediaUrl = linkUrl; // This will now be an object key or a regular URL for links
+        let finalMediaUrl = linkUrl;
         let postType: Post['type'] = activeTab;
         let fileSize: number | undefined = undefined;
 
         if (file) {
             postType = activeTab as 'image' | 'video';
             fileSize = file.size;
-            const filename = `posts/${postType}s/${user.uid}/${Date.now()}-${file.name}`;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('userId', user.uid);
             
-            const presignResponse = await fetch('/api/upload', {
+            const uploadResponse = await fetch('/api/upload', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                  filename, 
-                  contentType: file.type,
-                  size: file.size,
-                  userId: user.uid
-              }),
+              body: formData,
             });
             
-            const presignData = await presignResponse.json();
+            const result = await uploadResponse.json();
 
-            if (!presignResponse.ok) {
-              throw new Error(presignData.error || 'Failed to get pre-signed URL');
+            if (!uploadResponse.ok) {
+              throw new Error(result.error || 'File upload failed');
             }
-
-            const { signedUrl, key } = presignData;
             
-            const uploadResponse = await fetch(signedUrl, {
-              method: 'PUT',
-              body: file,
-              headers: { 'Content-Type': file.type },
-            });
-
-            if (!uploadResponse.ok) throw new Error('File upload failed');
-            
-            finalMediaUrl = key; // We store the key, not the full URL
+            finalMediaUrl = result.key;
         }
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status' | 'fileSize'> = {
@@ -122,7 +109,7 @@ export default function CreatePost({ onPostCreated, handleCreatePost }: CreatePo
         onPostCreated();
 
     } catch(error: any) {
-        console.error(error);
+        console.error("Upload Error:", error);
         toast({variant: 'destructive', title: t.uploadError, description: error.message || t.couldNotCreatePost})
     } finally {
         setIsUploading(false);
