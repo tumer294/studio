@@ -8,7 +8,7 @@ import type { User, StorageStats } from '@/lib/types';
 
 const s3Client = new S3Client({
   region: 'auto',
-  endpoint: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`, // TODO: Replace <ACCOUNT_ID>
+  endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
     accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `You have reached your daily upload limit of ${DAILY_UPLOAD_LIMIT_MB}MB.` }, { status: 429 });
     }
     
-    // 5. Generate pre-signed URL
+    // 5. Generate pre-signed URL for upload
     const command = new PutObjectCommand({
       Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
       Key: filename,
@@ -111,9 +111,10 @@ export async function POST(request: Request) {
 
     await batch.commit();
 
+    // Return the signed URL and the object key (filename)
     return NextResponse.json({ 
-        signedUrl, 
-        publicUrl: `https://<PUBLIC_BUCKET_URL>/${filename}` // TODO: Replace <PUBLIC_BUCKET_URL>
+        signedUrl,
+        key: filename 
     });
 
   } catch (error: any) {

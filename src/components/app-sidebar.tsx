@@ -20,7 +20,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, type AuthUser } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/use-translation";
@@ -28,7 +28,49 @@ import { languages } from "@/app-strings";
 import { useTheme } from "@/hooks/use-theme-provider";
 import { useCreatePost } from "@/hooks/use-create-post";
 import { Separator } from "./ui/separator";
+import React, { useState, useEffect } from "react";
 
+async function getDownloadUrl(key: string): Promise<string | null> {
+    if (!key) return null;
+    try {
+        const response = await fetch('/api/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key }),
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.signedUrl;
+    } catch (error) {
+        console.error("Error getting download URL", error);
+        return null;
+    }
+}
+
+function DisplayAvatar({ user }: { user: AuthUser }) {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isCancelled = false;
+        if (user.avatarUrl) {
+            getDownloadUrl(user.avatarUrl).then(downloadUrl => {
+                if (!isCancelled) setUrl(downloadUrl);
+            });
+        }
+        return () => { isCancelled = true };
+    }, [user.avatarUrl]);
+
+    return (
+        <Avatar>
+            {url ? (
+                <AvatarImage src={url} alt={user.name || 'User Avatar'} data-ai-hint="person portrait" />
+            ) : (
+                <AvatarImage src={user.photoURL || undefined} alt="User Avatar" data-ai-hint="person portrait" />
+            )}
+            <AvatarFallback>{user.name ? user.name.charAt(0) : user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+        </Avatar>
+    );
+}
 
 const themes = [
     { name: "Islamic Green", class: "theme-default" },
@@ -82,10 +124,7 @@ export default function AppSidebar() {
       
        <div className="flex flex-col gap-2 mb-4">
         <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary">
-            <Avatar>
-                <AvatarImage src={user.avatarUrl || user.photoURL || undefined} alt="User Avatar" data-ai-hint="person portrait" />
-                <AvatarFallback>{user.name ? user.name.charAt(0) : user.email?.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <DisplayAvatar user={user} />
             <div>
                 <p className="font-bold">{user.name || user.displayName}</p>
                 <p className="text-sm text-muted-foreground">@{user.username || user.email?.split('@')[0]}</p>

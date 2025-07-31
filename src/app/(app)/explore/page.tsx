@@ -10,6 +10,45 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Heart, MessageCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useTranslation } from "@/hooks/use-translation";
+import Image from 'next/image';
+
+async function getDownloadUrl(key: string): Promise<string | null> {
+    if (!key) return null;
+    try {
+        const response = await fetch('/api/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key }),
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.signedUrl;
+    } catch (error) {
+        console.error("Error getting download URL", error);
+        return null;
+    }
+}
+
+function PostImage({ post }: { post: Post }) {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isCancelled = false;
+        if (post.mediaUrl && post.type === 'image') {
+            getDownloadUrl(post.mediaUrl).then(downloadUrl => {
+                if (!isCancelled) setUrl(downloadUrl);
+            });
+        }
+        return () => { isCancelled = true; };
+    }, [post.mediaUrl, post.type]);
+
+    if (!url) {
+        return <Skeleton className="w-full h-full object-cover" />;
+    }
+
+    return <Image src={url} alt="Post image" className="w-full h-full object-cover transition-transform group-hover:scale-110" data-ai-hint={post['data-ai-hint']} fill />;
+}
+
 
 function ExploreSkeleton() {
     return (
@@ -51,7 +90,7 @@ function PostGrid({ title, posts, icon: Icon }: { title: string, posts: Post[], 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {posts.map((post) => (
                     <div key={post.id} className="group relative aspect-square overflow-hidden rounded-lg">
-                        <img src={post.mediaUrl} alt="Post image" className="w-full h-full object-cover transition-transform group-hover:scale-110" data-ai-hint={post['data-ai-hint']} />
+                        <PostImage post={post} />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-white">
                            <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-1">
@@ -128,5 +167,3 @@ export default function ExplorePage() {
         </div>
     );
 }
-
-    

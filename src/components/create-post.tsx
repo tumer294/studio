@@ -12,7 +12,7 @@ import { TextIcon, ImageIcon, Link2Icon, Film, Loader2 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/use-translation';
 import { useAuth } from '@/hooks/use-auth';
-
+import { DisplayImage } from '@/app/(app)/profile/[username]/page';
 
 interface CreatePostProps {
   onPostCreated: () => void;
@@ -70,7 +70,7 @@ export default function CreatePost({ onPostCreated, handleCreatePost }: CreatePo
     setIsUploading(true);
     
     try {
-        let finalMediaUrl = linkUrl;
+        let finalMediaUrl = linkUrl; // This will now be an object key or a regular URL for links
         let postType: Post['type'] = activeTab;
         let fileSize: number | undefined = undefined;
 
@@ -96,7 +96,7 @@ export default function CreatePost({ onPostCreated, handleCreatePost }: CreatePo
               throw new Error(presignData.error || 'Failed to get pre-signed URL');
             }
 
-            const { signedUrl, publicUrl } = presignData;
+            const { signedUrl, key } = presignData;
             
             const uploadResponse = await fetch(signedUrl, {
               method: 'PUT',
@@ -106,7 +106,7 @@ export default function CreatePost({ onPostCreated, handleCreatePost }: CreatePo
 
             if (!uploadResponse.ok) throw new Error('File upload failed');
             
-            finalMediaUrl = publicUrl;
+            finalMediaUrl = key; // We store the key, not the full URL
         }
 
         const newPost: Omit<Post, 'id' | 'userId' | 'createdAt' | 'likes' | 'comments' | 'reports' | 'status' | 'fileSize'> = {
@@ -156,7 +156,7 @@ export default function CreatePost({ onPostCreated, handleCreatePost }: CreatePo
     <div className="flex flex-col gap-4">
         <div className="flex items-start gap-4">
           <Avatar>
-            <AvatarImage src={user.avatarUrl || user.photoURL} alt={user.name} data-ai-hint="person portrait" />
+            <DisplayImage imageKey={user.avatarUrl} alt={user.name ?? ''} width={40} height={40} />
             <AvatarFallback>{user.name ? user.name.charAt(0) : user.email?.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="w-full">

@@ -75,7 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         username: username,
                         email: firebaseUser.email,
                         bio: t.welcomeToUmmahConnect,
-                        avatarUrl: firebaseUser.photoURL || '',
+                        avatarUrl: '', // Let's keep this as an R2 key, so empty string is fine.
                         coverPhotoUrl: '',
                         followers: [],
                         following: [],

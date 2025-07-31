@@ -37,6 +37,93 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { useTranslation } from '@/hooks/use-translation';
 
+
+async function getDownloadUrl(key: string): Promise<string | null> {
+    if (!key) return null;
+    try {
+        const response = await fetch('/api/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key }),
+        });
+        if (!response.ok) {
+            console.error("Failed to get download URL:", await response.text());
+            return null;
+        }
+        const data = await response.json();
+        return data.signedUrl;
+    } catch (error) {
+        console.error("Error getting download URL", error);
+        return null;
+    }
+}
+
+function DisplayMedia({ mediaKey, mediaType, ...props }: { mediaKey?: string, mediaType?: Post['type']} & any) {
+    const [url, setUrl] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        let isCancelled = false;
+        if (mediaKey && (mediaType === 'image' || mediaType === 'video')) {
+            setIsLoading(true);
+            getDownloadUrl(mediaKey).then(downloadUrl => {
+                if (!isCancelled) {
+                    setUrl(downloadUrl);
+                    setIsLoading(false);
+                }
+            });
+        } else {
+            setIsLoading(false);
+        }
+        return () => { isCancelled = true };
+    }, [mediaKey, mediaType]);
+
+    if (isLoading) {
+        return <div className="mt-3 aspect-video w-full bg-muted animate-pulse rounded-lg"></div>;
+    }
+
+    if (mediaType === 'image' && url) {
+      return (
+        <div className="mt-3 rounded-lg overflow-hidden border">
+          <Image
+            src={url}
+            alt="Post content"
+            width={600}
+            height={400}
+            className="w-full h-auto object-cover"
+            data-ai-hint={props['data-ai-hint'] || 'post image'}
+          />
+        </div>
+      );
+    }
+    
+    if (mediaType === 'video' && url) {
+        return (
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
+                <video src={url} controls className="w-full h-full"></video>
+            </div>
+        );
+    }
+
+    return null;
+}
+
+function DisplayAvatar({ imageKey, fallback, ...props }: { imageKey?: string, fallback: React.ReactNode } & Omit<React.ComponentProps<typeof AvatarImage>, 'src'>) {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isCancelled = false;
+        if (imageKey) {
+            getDownloadUrl(imageKey).then(downloadUrl => {
+                if (!isCancelled) setUrl(downloadUrl);
+            });
+        }
+        return () => { isCancelled = true };
+    }, [imageKey]);
+
+    return url ? <AvatarImage src={url} {...props} /> : fallback;
+}
+
 interface PostCardProps {
   post: Post;
   user: User;
@@ -151,8 +238,7 @@ function CommentSection({ postId, currentUser }: { postId: string, currentUser: 
         <div className="space-y-4 pt-4 mt-4 border-t w-full">
             <form onSubmit={handleCommentSubmit} className="flex items-center gap-3 pt-2">
                 <Avatar className="w-8 h-8">
-                    <AvatarImage src={currentUser.avatarUrl} alt="Current User" data-ai-hint="woman portrait" />
-                    <AvatarFallback>{currentUser.name?.charAt(0) || 'U'}</AvatarFallback>
+                     <DisplayAvatar imageKey={currentUser.avatarUrl} fallback={<AvatarFallback>{currentUser.name?.charAt(0) || 'U'}</AvatarFallback>} />
                 </Avatar>
                 <Input placeholder={t.writeAComment} className="h-9" value={newComment} onChange={e => setNewComment(e.target.value)} />
                 <Button size="sm" type="submit" disabled={!newComment.trim()}>{t.send}</Button>
@@ -160,8 +246,7 @@ function CommentSection({ postId, currentUser }: { postId: string, currentUser: 
             {comments.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(comment => (
                 <div key={comment.id} className="flex items-start gap-3">
                     <Avatar className="w-8 h-8">
-                        <AvatarImage src={comment.avatarUrl} alt={comment.name} data-ai-hint="person portrait"/>
-                        <AvatarFallback>{comment.name.charAt(0)}</AvatarFallback>
+                        <DisplayAvatar imageKey={comment.avatarUrl} fallback={<AvatarFallback>{comment.name?.charAt(0)}</AvatarFallback>} />
                     </Avatar>
                     <div className="flex-1 bg-secondary/50 rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2">
@@ -266,37 +351,15 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
     if (!post.mediaUrl || !post.type) {
       return null;
     }
-    const url = post.mediaUrl;
     
-    // For images uploaded directly
-    if (post.type === 'image') {
-      return (
-        <div className="mt-3 rounded-lg overflow-hidden border">
-          <Image
-            src={url}
-            alt="Post content"
-            width={600}
-            height={400}
-            className="w-full h-auto object-cover"
-            data-ai-hint={post['data-ai-hint'] || 'post image'}
-          />
-        </div>
-      );
-    }
-    
-    // For videos uploaded directly
-    if (post.type === 'video') {
-        return (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                <video src={url} controls className="w-full h-full"></video>
-            </div>
-        );
+    if (post.type === 'image' || post.type === 'video') {
+      return <DisplayMedia mediaKey={post.mediaUrl} mediaType={post.type} data-ai-hint={post['data-ai-hint']} />;
     }
 
-    // For shared links, check if image or video
     if(post.type === 'link') {
-        // Check for image extensions
-        if (/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url)) {
+        const url = post.mediaUrl;
+        const isImageLink = /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
+        if (isImageLink) {
             return (
                 <div className="mt-3 rounded-lg overflow-hidden border">
                     <Image
@@ -310,7 +373,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
             );
         }
 
-        // Check for video URLs (YouTube or direct video files)
         const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
         if (isYoutube) {
             const videoIdMatch = url.match(/(?:v=|\/|embed\/|watch\?v=|\&v=)([a-zA-Z0-9_-]{11})(?:\?|&|$)/);
@@ -340,7 +402,6 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
             );
         }
 
-        // Fallback for other links
         let hostname = 'link';
         try {
             hostname = new URL(url).hostname.replace('www.', '');
@@ -370,8 +431,7 @@ export default function PostCard({ post: initialPost, user }: PostCardProps) {
       <CardHeader className="flex flex-row items-center gap-3 p-4">
         <Link href={`/profile/${user.username}`}>
           <Avatar>
-            <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint={user['data-ai-hint']}/>
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            <DisplayAvatar imageKey={user.avatarUrl} fallback={<AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>} />
           </Avatar>
         </Link>
         <div className="flex-1">

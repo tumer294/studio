@@ -8,8 +8,8 @@ export interface User {
   name: string;
   username: string;
   email: string;
-  avatarUrl: string;
-  coverPhotoUrl?: string;
+  avatarUrl?: string; // This is now the object key in R2, not a full URL
+  coverPhotoUrl?: string; // This is now the object key in R2, not a full URL
   bio?: string;
   followers: string[]; // Array of user IDs
   following: string[]; // Array of user IDs
@@ -31,7 +31,7 @@ export interface Comment {
   userId: string;
   username: string;
   name: string;
-  avatarUrl: string;
+  avatarUrl?: string; // Can be object key
   content: string;
   createdAt: string; // Should be an ISO date string
 }
@@ -47,7 +47,7 @@ export interface Post {
   userId:string;
   type: PostType;
   content: string; // For text post or caption
-  mediaUrl?: string; // For image/video/link URL
+  mediaUrl?: string; // For image/video/link URL or object key
   createdAt: any; // Firestore Timestamp
   likes: string[]; // Array of user IDs who liked the post
   comments: Comment[];

@@ -17,8 +17,30 @@ import { UserPlus, Mail, Camera, UserCheck, Loader2 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from '@/hooks/use-translation';
+import { getDownloadUrl } from '@/lib/utils';
 
 type PostWithUser = Post & { author: User };
+
+export function DisplayImage({ imageKey, alt, ...props }: { imageKey?: string, alt: string } & Omit<React.ComponentProps<typeof Image>, 'src' | 'alt'>) {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isCancelled = false;
+        if (imageKey) {
+            getDownloadUrl(imageKey).then(downloadUrl => {
+                if (!isCancelled) setUrl(downloadUrl);
+            });
+        }
+        return () => { isCancelled = true; };
+    }, [imageKey]);
+
+    if (!url) {
+        return <div className="bg-muted w-full h-full" />;
+    }
+
+    // eslint-disable-next-line jsx-a11y/alt-text
+    return <Image src={url} alt={alt} {...props} />;
+}
 
 function ProfileSkeleton() {
     return (
@@ -273,7 +295,7 @@ export default function ProfilePage() {
           throw new Error(presignData.error || 'Failed to get pre-signed URL');
       }
       
-      const { signedUrl, publicUrl } = presignData;
+      const { signedUrl, key } = presignData;
 
       const uploadResponse = await fetch(signedUrl, {
         method: 'PUT',
@@ -284,7 +306,7 @@ export default function ProfilePage() {
       if (!uploadResponse.ok) throw new Error('Image upload failed');
 
       const userDocRef = doc(db, "users", profileUser.uid);
-      const updateData = type === 'avatar' ? { avatarUrl: publicUrl } : { coverPhotoUrl: publicUrl };
+      const updateData = type === 'avatar' ? { avatarUrl: key } : { coverPhotoUrl: key };
       await updateDoc(userDocRef, updateData);
       toast({ title: t.success, description: type === 'avatar' ? t.newAvatarSaved : t.newCoverSaved });
 
@@ -308,7 +330,7 @@ export default function ProfilePage() {
     <div>
         <Card className="overflow-hidden">
             <div className="h-32 md:h-48 bg-gradient-to-r from-primary/20 to-accent/20 relative group">
-                {profileUser.coverPhotoUrl && <Image src={profileUser.coverPhotoUrl} alt="Cover photo" fill={true} style={{objectFit:"cover"}} />}
+                <DisplayImage imageKey={profileUser.coverPhotoUrl} alt="Cover photo" fill={true} style={{objectFit:"cover"}} />
                 {isOwnProfile && (
                   <>
                     <input type="file" accept="image/*" ref={coverInputRef} onChange={(e) => handleImageUpload(e, 'cover')} className="hidden" />
@@ -322,7 +344,7 @@ export default function ProfilePage() {
             <div className="p-4 relative">
                  <div className="absolute -top-12 md:-top-16 left-4 md:left-6 group">
                     <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-card shadow-md">
-                        <AvatarImage src={profileUser.avatarUrl} data-ai-hint="person portrait" />
+                        <DisplayImage imageKey={profileUser.avatarUrl} alt={profileUser.name} className="w-full h-full object-cover" width={128} height={128} />
                         <AvatarFallback className="text-4xl">{profileUser.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                      {isOwnProfile && (
