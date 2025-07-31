@@ -192,3 +192,5 @@ export default function CreatePost({ user, onPostCreated, handleCreatePost }: Cr
     </div>
   );
 }
+
+    
