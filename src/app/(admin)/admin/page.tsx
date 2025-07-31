@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, deleteDoc, doc, getCountFromServer, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, deleteDoc, doc, getCountFromServer, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { User, Post, StorageStats } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -54,16 +54,16 @@ function StorageUsageChart({ storageStats, isLoading }: { storageStats: StorageS
     const percentage = ((usedBytes / STORAGE_LIMIT_BYTES) * 100).toFixed(2);
 
     const data = [
-        { name: t.save, value: usedBytes, color: 'hsl(var(--primary))' }, // Reusing translation keys where it makes sense
-        { name: t.cancel, value: remainingBytes, color: 'hsl(var(--secondary))' },
+        { name: t.usedStorage, value: usedBytes, color: 'hsl(var(--primary))' },
+        { name: t.remainingStorage, value: remainingBytes, color: 'hsl(var(--secondary))' },
     ];
 
     if (isLoading) {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><HardDrive /> Storage Usage</CardTitle>
-                    <CardDescription>Monthly cloud storage usage.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><HardDrive /> {t.storageUsage}</CardTitle>
+                    <CardDescription>{t.storageUsageDesc}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-center items-center h-[200px]">
                     <Skeleton className="h-40 w-40 rounded-full" />
@@ -75,9 +75,9 @@ function StorageUsageChart({ storageStats, isLoading }: { storageStats: StorageS
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><HardDrive /> Storage Usage</CardTitle>
+                <CardTitle className="flex items-center gap-2"><HardDrive /> {t.storageUsage}</CardTitle>
                 <CardDescription>
-                    Monthly usage is {usedGb} GB ({percentage}%) of {STORAGE_LIMIT_GB} GB limit.
+                    {t.storageUsageDetail(usedGb, percentage, STORAGE_LIMIT_GB)}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -144,42 +144,50 @@ export default function AdminPage() {
         
         fetchInitialCounts();
 
-        const listeners = [
-            onSnapshot(collection(db, 'users'), 
-                (snapshot) => setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User))),
-                (error) => console.error("Error fetching users:", error)
-            ),
-            onSnapshot(collection(db, 'posts'), 
-                (snapshot) => {
-                    const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-                    setPosts(postsData);
-                    setStats(prev => ({
-                        ...prev,
-                        reportedCount: postsData.filter(p => (p.reports?.length || 0) > 0).length,
-                        bannedCount: postsData.filter(p => p.status === 'banned').length
-                    }));
-                },
-                (error) => console.error("Error fetching posts:", error)
-            ),
-            onSnapshot(doc(db, 'storageStats', 'global'), 
-                (doc) => {
-                    if (doc.exists()) {
-                        setStorageStats(doc.data() as StorageStats);
-                    } else {
-                        setStorageStats({ totalStorageUsed: 0, currentCycleStart: new Date() });
-                    }
-                },
-                (error) => console.error("Error fetching storage stats:", error)
-            ),
-        ];
+        const unsubUsers = onSnapshot(collection(db, 'users'), 
+            (snapshot) => setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User))),
+            (error) => console.error("Error fetching users:", error)
+        );
 
-        // This is a simple way to set loading to false after all listeners are attached and have had a chance to fetch.
-        const timer = setTimeout(() => setLoading(false), 2000); 
+        const unsubPosts = onSnapshot(collection(db, 'posts'), 
+            (snapshot) => {
+                const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+                setPosts(postsData);
+                setStats(prev => ({
+                    ...prev,
+                    postCount: postsData.length,
+                    reportedCount: postsData.filter(p => (p.reports?.length || 0) > 0).length,
+                    bannedCount: postsData.filter(p => p.status === 'banned').length
+                }));
+            },
+            (error) => console.error("Error fetching posts:", error)
+        );
+
+        const unsubStorage = onSnapshot(doc(db, 'storageStats', 'global'), 
+            (doc) => {
+                if (doc.exists()) {
+                    setStorageStats(doc.data() as StorageStats);
+                } else {
+                    setStorageStats({ totalStorageUsed: 0, currentCycleStart: new Date() });
+                }
+            },
+            (error) => console.error("Error fetching storage stats:", error)
+        );
+        
+        const unsubUserCount = onSnapshot(collection(db, 'users'), 
+            (snapshot) => setStats(prev => ({ ...prev, userCount: snapshot.size }))
+        );
+
+        // A simple way to set loading to false after initial listeners are attached
+        const timer = setTimeout(() => setLoading(false), 1500); 
 
         // Cleanup
         return () => {
             clearTimeout(timer);
-            listeners.forEach(unsub => unsub());
+            unsubUsers();
+            unsubPosts();
+            unsubStorage();
+            unsubUserCount();
         };
     }, [t.couldNotFetchDashboardStats, t.error, toast]);
 
@@ -230,29 +238,29 @@ export default function AdminPage() {
             <header>
                 <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
                     <BarChart2 className="w-8 h-8"/>
-                    Admin Dashboard
+                    {t.adminDashboard}
                 </h1>
-                <p className="text-muted-foreground">Welcome to the admin control center.</p>
+                <p className="text-muted-foreground">{t.adminWelcome}</p>
             </header>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatCard title="Total Users" value={stats.userCount} icon={Users} isLoading={loading} />
-                <StatCard title="Total Posts" value={stats.postCount} icon={FileText} isLoading={loading} />
-                <StatCard title="Reported Posts" value={stats.reportedCount} icon={ShieldAlert} isLoading={loading} />
-                <StatCard title="Banned Posts" value={stats.bannedCount} icon={Ban} isLoading={loading} />
+                <StatCard title={t.totalUsers} value={stats.userCount} icon={Users} isLoading={loading} />
+                <StatCard title={t.totalPosts} value={stats.postCount} icon={FileText} isLoading={loading} />
+                <StatCard title={t.reportedPosts} value={stats.reportedCount} icon={ShieldAlert} isLoading={loading} />
+                <StatCard title={t.bannedPosts} value={stats.bannedCount} icon={Ban} isLoading={loading} />
             </div>
             
             <div className="grid gap-6 lg:grid-cols-2">
                 <StorageUsageChart storageStats={storageStats} isLoading={loading} />
                 <Card>
                     <CardHeader>
-                        <CardTitle>Quick Actions</CardTitle>
-                        <CardDescription>Perform common administrative tasks.</CardDescription>
+                        <CardTitle>{t.quickActions}</CardTitle>
+                        <CardDescription>{t.quickActionsDesc}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                        <Button variant="outline" className="w-full">Send Global Notification</Button>
-                        <Button variant="outline" className="w-full">Recalculate All Stats</Button>
-                        <Button variant="destructive" className="w-full">Temporarily Disable Site</Button>
+                        <Button variant="outline" className="w-full">{t.sendGlobalNotification}</Button>
+                        <Button variant="outline" className="w-full">{t.recalculateStats}</Button>
+                        <Button variant="destructive" className="w-full">{t.disableSite}</Button>
                     </CardContent>
                 </Card>
             </div>
@@ -260,19 +268,19 @@ export default function AdminPage() {
             <div className="grid gap-6 lg:grid-cols-1">
                  <Card>
                     <CardHeader>
-                        <CardTitle>Post Management</CardTitle>
-                        <CardDescription>View and manage all user posts. You can ban, unban, or delete posts.</CardDescription>
+                        <CardTitle>{t.postManagement}</CardTitle>
+                        <CardDescription>{t.postManagementDesc}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Author</TableHead>
-                                    <TableHead>Content</TableHead>
-                                    <TableHead>Reports</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Created</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead>{t.author}</TableHead>
+                                    <TableHead>{t.content}</TableHead>
+                                    <TableHead>{t.reports}</TableHead>
+                                    <TableHead>{t.status}</TableHead>
+                                    <TableHead>{t.created}</TableHead>
+                                    <TableHead className="text-right">{t.actions}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -291,8 +299,8 @@ export default function AdminPage() {
                                     const postStatus = post.status || 'active';
                                     return (
                                         <TableRow key={post.id}>
-                                            <TableCell>{author?.name || 'Unknown User'}</TableCell>
-                                            <TableCell className="max-w-xs truncate">{post.content || 'Media Post'}</TableCell>
+                                            <TableCell>{author?.name || t.unknownUser}</TableCell>
+                                            <TableCell className="max-w-xs truncate">{post.content || t.mediaPost}</TableCell>
                                             <TableCell className="text-center">
                                                 <Badge variant={(post.reports?.length || 0) > 0 ? "destructive" : "secondary"}>
                                                    {post.reports?.length || 0}
@@ -314,11 +322,11 @@ export default function AdminPage() {
                                                     <DropdownMenuContent align="end">
                                                         {postStatus === 'active' ? (
                                                             <DropdownMenuItem onClick={() => handlePostStatusChange(post.id, 'banned')}>
-                                                                <Ban className="mr-2 h-4 w-4" /> Ban Post
+                                                                <Ban className="mr-2 h-4 w-4" /> {t.banPost}
                                                             </DropdownMenuItem>
                                                         ) : (
                                                             <DropdownMenuItem onClick={() => handlePostStatusChange(post.id, 'active')}>
-                                                                <Ban className="mr-2 h-4 w-4" /> Unban Post
+                                                                <Ban className="mr-2 h-4 w-4" /> {t.unbanPost}
                                                             </DropdownMenuItem>
                                                         )}
                                                         <DropdownMenuSeparator />
@@ -338,17 +346,17 @@ export default function AdminPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>User Management</CardTitle>
-                        <CardDescription>View and manage all registered users.</CardDescription>
+                        <CardTitle>{t.userManagement}</CardTitle>
+                        <CardDescription>{t.userManagementDesc}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>User</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>Joined</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead>{t.user}</TableHead>
+                                    <TableHead>{t.email}</TableHead>
+                                    <TableHead>{t.joined}</TableHead>
+                                    <TableHead className="text-right">{t.actions}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -386,7 +394,7 @@ export default function AdminPage() {
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteUser(user.id, user.name)}>
                                                         <Trash2 className="mr-2 h-4 w-4" />
-                                                        {t.deletePost}
+                                                        {t.deleteUser}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
