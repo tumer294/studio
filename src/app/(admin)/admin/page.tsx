@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, deleteDoc, doc, getCountFromServer, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, deleteDoc, doc, getCountFromServer, updateDoc, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { User, Post, StorageStats } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MoreHorizontal, Trash2, Users, FileText, BarChart2, ShieldAlert, Ban, HardDrive } from 'lucide-react';
+import { MoreHorizontal, Trash2, Users, FileText, BarChart2, ShieldAlert, Ban, HardDrive, Send, RefreshCw, Power } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -19,10 +19,25 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from '@/hooks/use-translation';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 const STORAGE_LIMIT_GB = 9.9;
 const STORAGE_LIMIT_BYTES = STORAGE_LIMIT_GB * 1024 * 1024 * 1024;
@@ -125,28 +140,32 @@ export default function AdminPage() {
     const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
+    const [notificationMessage, setNotificationMessage] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const fetchCounts = async () => {
+        try {
+            const usersCol = collection(db, 'users');
+            const postsCol = collection(db, 'posts');
+            const userSnapshot = await getCountFromServer(usersCol);
+            const postSnapshot = await getCountFromServer(postsCol);
+             setStats(prev => ({ ...prev, userCount: userSnapshot.data().count, postCount: postSnapshot.data().count }));
+        } catch (error) {
+            console.error("Error fetching counts:", error);
+            toast({ variant: 'destructive', title: t.error, description: t.couldNotFetchDashboardStats });
+        }
+    };
+    
     useEffect(() => {
         setLoading(true);
-
-        const fetchInitialCounts = async () => {
-             try {
-                const usersCol = collection(db, 'users');
-                const postsCol = collection(db, 'posts');
-                const userSnapshot = await getCountFromServer(usersCol);
-                const postSnapshot = await getCountFromServer(postsCol);
-                setStats(prev => ({ ...prev, userCount: userSnapshot.data().count, postCount: postSnapshot.data().count }));
-            } catch (error) {
-                console.error("Error fetching counts:", error);
-                toast({ variant: 'destructive', title: t.error, description: t.couldNotFetchDashboardStats });
-            }
-        };
-        
-        fetchInitialCounts();
+        fetchCounts();
 
         const unsubUsers = onSnapshot(collection(db, 'users'), 
             (snapshot) => setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User))),
-            (error) => console.error("Error fetching users:", error)
+            (error) => {
+                console.error("Error fetching users:", error);
+                toast({ variant: 'destructive', title: "Error", description: "Could not fetch users." });
+            }
         );
 
         const unsubPosts = onSnapshot(collection(db, 'posts'), 
@@ -159,8 +178,13 @@ export default function AdminPage() {
                     reportedCount: postsData.filter(p => (p.reports?.length || 0) > 0).length,
                     bannedCount: postsData.filter(p => p.status === 'banned').length
                 }));
+                 if(loading) setLoading(false);
             },
-            (error) => console.error("Error fetching posts:", error)
+            (error) => {
+                console.error("Error fetching posts:", error);
+                toast({ variant: 'destructive', title: "Error", description: "Could not fetch posts." });
+                 if(loading) setLoading(false);
+            }
         );
 
         const unsubStorage = onSnapshot(doc(db, 'storageStats', 'global'), 
@@ -173,23 +197,14 @@ export default function AdminPage() {
             },
             (error) => console.error("Error fetching storage stats:", error)
         );
-        
-        const unsubUserCount = onSnapshot(collection(db, 'users'), 
-            (snapshot) => setStats(prev => ({ ...prev, userCount: snapshot.size }))
-        );
 
-        // A simple way to set loading to false after initial listeners are attached
-        const timer = setTimeout(() => setLoading(false), 1500); 
-
-        // Cleanup
         return () => {
-            clearTimeout(timer);
             unsubUsers();
             unsubPosts();
             unsubStorage();
-            unsubUserCount();
         };
-    }, [t.couldNotFetchDashboardStats, t.error, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [toast]);
 
     const handleDeleteUser = async (userId: string, userName: string) => {
         if (window.confirm(`Are you sure you want to delete user ${userName}? This action cannot be undone.`)) {
@@ -227,6 +242,50 @@ export default function AdminPage() {
         }
     };
 
+    const handleSendNotification = async () => {
+        if (!notificationMessage.trim()) return;
+        setIsSubmitting(true);
+        try {
+            const notificationsRef = collection(db, 'notifications');
+            await addDoc(notificationsRef, {
+                message: notificationMessage,
+                createdAt: serverTimestamp(),
+                type: 'global'
+            });
+            toast({ title: "Notification Sent", description: "The global notification has been sent to all users." });
+            setNotificationMessage("");
+        } catch(error) {
+            console.error("Error sending notification:", error);
+            toast({ variant: 'destructive', title: t.error, description: "Could not send the notification." });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleRecalculateStats = async () => {
+        setIsSubmitting(true);
+        await fetchCounts();
+        setIsSubmitting(false);
+        toast({ title: "Stats Recalculated", description: "The dashboard statistics have been updated." });
+    };
+    
+    const handleToggleSiteStatus = async (disable: boolean) => {
+        setIsSubmitting(true);
+        try {
+            const statusRef = doc(db, 'site_status', 'main');
+            await setDoc(statusRef, { 
+                isEnabled: !disable,
+                updatedAt: serverTimestamp() 
+            }, { merge: true });
+            toast({ title: "Site Status Updated", description: `The site has been ${disable ? 'disabled' : 'enabled'}.` });
+        } catch (error) {
+            console.error("Error updating site status:", error);
+            toast({ variant: 'destructive', title: t.error, description: "Could not update site status." });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const usersById = users.reduce((acc, user) => {
         acc[user.id] = user;
         return acc;
@@ -258,9 +317,58 @@ export default function AdminPage() {
                         <CardDescription>{t.quickActionsDesc}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                        <Button variant="outline" className="w-full">{t.sendGlobalNotification}</Button>
-                        <Button variant="outline" className="w-full">{t.recalculateStats}</Button>
-                        <Button variant="destructive" className="w-full">{t.disableSite}</Button>
+                         <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="w-full"><Send className="mr-2"/>{t.sendGlobalNotification}</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>{t.sendGlobalNotification}</DialogTitle>
+                                    <DialogDescription>
+                                        This message will be shown to all users. Use for important announcements.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <Label htmlFor="notification" className="sr-only">Notification Message</Label>
+                                    <Textarea id="notification" value={notificationMessage} onChange={e => setNotificationMessage(e.target.value)} placeholder="Enter your notification message here..." />
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button variant="ghost">Cancel</Button>
+                                    </DialogClose>
+                                    <DialogClose asChild>
+                                        <Button onClick={handleSendNotification} disabled={isSubmitting || !notificationMessage.trim()}>
+                                            {isSubmitting ? "Sending..." : "Send Notification"}
+                                        </Button>
+                                    </DialogClose>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                        
+                         <Button variant="outline" className="w-full" onClick={handleRecalculateStats} disabled={isSubmitting}>
+                           <RefreshCw className={`mr-2 ${isSubmitting ? 'animate-spin' : ''}`} />
+                           {isSubmitting ? "Recalculating..." : t.recalculateStats}
+                        </Button>
+                        
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                 <Button variant="destructive" className="w-full"><Power className="mr-2"/>{t.disableSite}</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action will make the site inaccessible to regular users. You will need to re-enable it manually from here.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleToggleSiteStatus(true)} disabled={isSubmitting}>
+                                        Yes, disable the site
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </CardContent>
                 </Card>
             </div>
@@ -409,5 +517,3 @@ export default function AdminPage() {
         </div>
     );
 }
-
-    
