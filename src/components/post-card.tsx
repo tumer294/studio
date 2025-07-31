@@ -84,13 +84,12 @@ function DisplayMedia({ mediaKey, mediaType, ...props }: { mediaKey?: string, me
 
     if (mediaType === 'image' && url) {
       return (
-        <div className="mt-3 rounded-lg overflow-hidden border">
+        <div className="mt-3 rounded-lg overflow-hidden border relative w-full aspect-video max-h-[600px]">
           <Image
             src={url}
             alt="Post content"
-            width={600}
-            height={400}
-            className="w-full h-auto object-cover"
+            fill
+            className="object-cover"
             data-ai-hint={props['data-ai-hint'] || 'post image'}
           />
         </div>
@@ -99,8 +98,8 @@ function DisplayMedia({ mediaKey, mediaType, ...props }: { mediaKey?: string, me
     
     if (mediaType === 'video' && url) {
         return (
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black">
-                <video src={url} controls className="w-full h-full"></video>
+            <div className="mt-3 aspect-video rounded-lg overflow-hidden border bg-black max-h-[600px]">
+                <video src={url} controls className="w-full h-full object-contain"></video>
             </div>
         );
     }
