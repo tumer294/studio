@@ -9,13 +9,13 @@ const {
   CLOUDFLARE_R2_ACCESS_KEY_ID,
   CLOUDFLARE_R2_SECRET_ACCESS_KEY,
   CLOUDFLARE_R2_BUCKET_NAME,
-  CLOUDFLARE_R2_ENDPOINT
+  CLOUDFLARE_ACCOUNT_ID
 } = process.env;
 
-const s3Client = CLOUDFLARE_R2_ACCESS_KEY_ID && CLOUDFLARE_R2_SECRET_ACCESS_KEY && CLOUDFLARE_R2_BUCKET_NAME && CLOUDFLARE_R2_ENDPOINT
+const s3Client = CLOUDFLARE_R2_ACCESS_KEY_ID && CLOUDFLARE_R2_SECRET_ACCESS_KEY && CLOUDFLARE_R2_BUCKET_NAME && CLOUDFLARE_ACCOUNT_ID
   ? new S3Client({
       region: 'auto',
-      endpoint: CLOUDFLARE_R2_ENDPOINT,
+      endpoint: `https://<YOUR_ACCOUNT_ID>.r2.cloudflarestorage.com`,
       credentials: {
         accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
         secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
@@ -41,7 +41,7 @@ async function buffer(readable: NodeJS.ReadableStream) {
 
 export async function POST(request: Request) {
   if (!s3Client) {
-    return NextResponse.json({ error: 'Server not configured for file uploads.' }, { status: 500 });
+    return NextResponse.json({ error: 'Server not configured for file operations.' }, { status: 500 });
   }
 
   try {
